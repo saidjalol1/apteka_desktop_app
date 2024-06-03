@@ -12,7 +12,7 @@ class Product(Base):
     name = Column(String)
     price = Column(Float)
     amount_in_package = Column(Integer)
-    ramainder = Column(Integer)
+    remainder = Column(Integer)
     produced_location = Column(String)
     expiry_date = Column(Date)
     score = Column(Integer)
