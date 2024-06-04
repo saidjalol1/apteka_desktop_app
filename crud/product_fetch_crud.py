@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from database_models.product_model import Product
+from database_models.models import Product
 from pydantic_models.models import BaseProduct
 
 

@@ -1,8 +1,8 @@
-"""product remainder field changed
+"""new database
 
-Revision ID: b08e45fa02f0
-Revises: 601cbab843a1
-Create Date: 2024-06-02 16:50:41.486896
+Revision ID: f11a4ad2b6b1
+Revises: 
+Create Date: 2024-06-04 11:20:49.697951
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b08e45fa02f0'
-down_revision: Union[str, None] = '601cbab843a1'
+revision: str = 'f11a4ad2b6b1'
+down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
