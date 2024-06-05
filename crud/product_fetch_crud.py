@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from database_models.models import Product
-from pydantic_models.models import BaseProduct
+from pydantic_models.models import ProductIn
 
 
 # Returns Product According to The Id of it
@@ -12,7 +12,7 @@ def get_products(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Product).offset(skip).limit(limit).all()
 
 #Prduct Creation
-def create(db: Session, product:BaseProduct):
+def create(db: Session, product:ProductIn):
     db_product = Product(**product.model_dump())
     db.add(db_product)
     db.commit()

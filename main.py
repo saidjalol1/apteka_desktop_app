@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 from typing import Annotated
 from sqlalchemy import extract
 from sqlalchemy.orm import Session
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Body
 
 #Dependencies
 from database_config.database_conf import engine, get_db
@@ -16,7 +16,6 @@ from crud import product_fetch_crud
 #Auth
 from fastapi.security import  OAuth2PasswordRequestForm
 from auth import auth_main, password, token
-
 
 app = FastAPI()
 
@@ -41,7 +40,6 @@ async def home(skip: int = 0, limit: int = 10,current_user: pydantic_models.mode
         "this_month_score": this_month_score
     }
     return object
-
 
 
 @app.post("/token/")
@@ -97,4 +95,62 @@ async def create_user(userin : pydantic_models.models.CreateUser,db: Session = D
     return {"message": "success"}
 
 
-    
+@app.post("/salary/")
+async def salary_give(salary : pydantic_models.models.SalaryInModel,
+    current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+    if current_user.is_admin:
+        slary = models.UserSalaries(
+            amount = salary.amount,
+            type = salary.type,
+            date_received = salary.date_received,
+            receiver_id = salary.receiver_id,
+            giver_id = current_user.id
+        )
+        db.add(slary)
+        db.commit()
+        db.refresh(slary)
+        return {"message": "success"}
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can create user")
+
+# Product Routes
+@app.post("/product/create", response_model=pydantic_models.models.ProductOut)
+async def create_product(product: pydantic_models.models.ProductIn,current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db:Session = Depends(get_db)):
+    if current_user.is_admin:
+        product = product_fetch_crud.create(db,product)
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can add product")
+    return product
+
+
+@app.put("/product/edit")
+async def product_edit(product_id : int,product_update: pydantic_models.models.ProductIn,
+    current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+    if current_user.is_admin:
+        product = db.query(models.Product).filter(models.Product.id == product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        for key, value in product_update.model_dump(exclude_unset=True).items():
+            setattr(product, key, value)
+
+        db.commit()
+        db.refresh(product)
+        return product
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can edit product")
+
+
+# @app.put("/product/delete")
+# async def product_delete(product_id : int, 
+#     current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+#     if current_user.is_admin:
+#         product = db.query(models.Product).filter(models.Product.id == product_id).first()
+#         if not product:
+#             raise HTTPException(status_code=404, detail="Product not found")
+        
+#         db.delete(product)
+#         db.commit()
+#         return product
+#     else:
+#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can delete product")
