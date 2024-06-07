@@ -43,6 +43,7 @@ class Sale(Base):
     id = Column(Integer, primary_key=True)
     amount = Column(Integer)
     date_added = Column(Date)
+    status = Column(Boolean)
     owner_id = Column("User", ForeignKey('users.id'))
     
     sale_owner = relationship("User", back_populates="sales")

@@ -64,5 +64,5 @@ class SaleItemIn(BaseModel):
     amount : Optional[Union[int, None]] = None
     amount_from_package : Optional[Union[int, None]] = None
     total_sum : Optional[Union[float, None]] = None
-    product : ProductOut
+    product_id : Optional[Union[int, None]] = None
     
