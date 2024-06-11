@@ -1,16 +1,16 @@
 from datetime import timedelta, datetime
-from typing import Annotated
+from typing import Annotated, Optional
 from sqlalchemy import extract
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi.security import  OAuth2PasswordRequestForm
 from fastapi import FastAPI, Depends, HTTPException, status
 
 import pydantic_models
-import pydantic_models.models
-from routes import cashier_route, admin_routes
 from database_models import models
 from crud import product_fetch_crud
 from auth import auth_main, password, token
+import pydantic_models.models
+from routes import cashier_route, admin_routes
 from database_config.database_conf import engine, get_db
 
 app = FastAPI()
@@ -26,15 +26,38 @@ current_year = datetime.now().year
 
 
 @app.get("/")
-async def home(skip: int = 0, limit: int = 10,current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+async def home(
+        check_id : Optional[int] = None,
+        skip: int = 0, limit: int = 10,
+        current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),
+        db: Session = Depends(get_db)):
+    
     products = product_fetch_crud.get_products(db, skip, limit)
     user_scores = (db.query(models.UserScores).filter(models.UserScores.owner_id == current_user.id,
         extract('month', models.UserScores.date_scored) == current_month,
         extract('year', models.UserScores.date_scored) == current_year).all())
     this_month_score = sum(score.score for score in user_scores)
+    items = []
+    if check_id:
+       check =  db.query(models.Sale).filter(models.Sale.id == check_id).first()
+       items = db.query(models.SaleItem).filter(models.SaleItem.sale_id == check_id).all()
+    else:
+        check = models.Sale(
+            amount = 0,
+            status = False,
+            owner_id = current_user.id
+        )
+        db.add(check)
+        db.commit()
+        db.refresh(check)
+    response_check_model = pydantic_models.models.CheckOut.model_validate(check)
+    response_items = [pydantic_models.models.SaleItemOut.model_validate(item) for item in items]
+    response_products = [pydantic_models.models.ProductOut.model_validate(product) for product in products]
     object = {
-        "products": products,
-        "this_month_score": this_month_score
+        "products": response_products,
+        "this_month_score": this_month_score,
+        "check": response_check_model,
+        "items": response_items
     }
     return object
 

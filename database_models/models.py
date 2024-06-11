@@ -1,7 +1,7 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, Date
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, Date, DateTime
 from sqlalchemy.orm import relationship
 
-from database_config.database_conf import Base
+from database_config.database_conf import Base, current_time
 
 
 
@@ -35,15 +35,16 @@ class SaleItem(Base):
     
     sale_product_items = relationship("Product", back_populates="sale_product")
     sale = relationship("Sale", back_populates="items")
-    
+    user_scores = relationship("UserScores", back_populates="item")
 
 class Sale(Base):
     __tablename__ = "sale"
     
     id = Column(Integer, primary_key=True)
     amount = Column(Integer)
-    date_added = Column(Date)
+    date_added = Column(DateTime, default=current_time)
     status = Column(Boolean)
+    payment_type = Column(String)
     owner_id = Column("User", ForeignKey('users.id'))
     
     sale_owner = relationship("User", back_populates="sales")
@@ -52,15 +53,16 @@ class Sale(Base):
 
 
 # User models 
-
 class UserScores(Base):
     __tablename__ = "user_scores"
     
     id = Column(Integer, primary_key=True)
     score = Column(Float)
-    date_scored = Column(Date)
+    date_scored = Column(DateTime, default=current_time)
     owner_id = Column(Integer, ForeignKey('users.id'))
+    sale_item_id = Column(Integer, ForeignKey("sale_items.id"))
     
+    item = relationship("SaleItem", back_populates="user_scores")
     owner = relationship("User", back_populates="scores")
 
 
@@ -69,7 +71,7 @@ class UserSalaries(Base):
     id = Column(Integer, primary_key=True)
     amount = Column(Float)
     type = Column(String)
-    date_received = Column(Date)
+    date_received = Column(DateTime, default=current_time)
     giver_id = Column(Integer, ForeignKey("users.id"))
     receiver_id = Column(Integer, ForeignKey("users.id"))
 
