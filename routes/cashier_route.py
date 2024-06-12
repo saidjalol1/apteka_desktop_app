@@ -13,8 +13,17 @@ app = APIRouter(
 
 
 
-def user_score_retrieve(user_id, db):
-    scores = db.query(models.UserScores).options(joinedload(models.UserScores.item)).filter(models.UserScores.owner_id == user_id).all()
+def user_score_retrieve(user_id, db, date=False):
+    today_date = current_time().date()
+    print(today_date)
+    if date:
+        scores = db.query(models.UserScores)\
+               .options(joinedload(models.UserScores.item))\
+               .filter(models.UserScores.owner_id == user_id)\
+               .filter(models.UserScores.date_scored == today_date)\
+               .all()
+    else:
+        scores = db.query(models.UserScores).options(joinedload(models.UserScores.item)).filter(models.UserScores.owner_id == user_id).all()
     serialize = []
     for score in scores:
         item = score.item
@@ -43,15 +52,19 @@ def user_score_retrieve(user_id, db):
                 )
             ))
     return serialize
-    
 
 @app.get("/profile/", name="profil")
 async def cashier(start_date: date = Query(None), end_date: date = Query(None),
     current_user: models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+    
     user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == current_user.id).options(joinedload(models.UserSalaries.giver)).all()
     user_scores = user_score_retrieve(current_user.id, db)
-        
-    profile_data = {"user": current_user,"user_salaries": user_salaries, "user_scores":user_scores}
+    today_user_retrieve = user_score_retrieve(current_user.id, db, date=True)
+    today_score = sum([i.score for i in today_user_retrieve])
+    print(today_user_retrieve)
+    # if start_date and end_date:
+    
+    profile_data = {"user": current_user,"user_salaries": user_salaries, "user_scores":user_scores, "score_today":today_score}
     return profile_data
 
 
@@ -88,14 +101,13 @@ async def sale(sale_item_in: pydantic_models.models.SaleItemIn,
     base_score = sale_item.sale_product_items.score / sale_item.sale_product_items.amount_in_package
     score = count_drug * base_score
     
-    serialize
     
     user_score = models.UserScores(
         score = score,
         owner_id = current_user.id,
         sale_item_id = sale_item.id
     )
-    
+    print(user_score)
     db.add(user_score)
     db.commit()
     db.refresh(user_score)

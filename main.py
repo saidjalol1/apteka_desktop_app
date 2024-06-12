@@ -44,7 +44,7 @@ async def home(
     else:
         check = models.Sale(
             amount = 0,
-            status = False,
+            status = "active",
             owner_id = current_user.id
         )
         db.add(check)
@@ -61,6 +61,41 @@ async def home(
     }
     return object
 
+
+@app.get("/sell")
+async def sell(
+        check_id : int,
+        payment_type : str,
+        current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),
+        db: Session = Depends(get_db)):
+    try:
+        check = db.query(models.Sale).filter(models.Sale.id == check_id).filter(models.Sale.owner_id == current_user.id).first()
+        check.status = "sotilgan"
+        check.payment_type = payment_type
+    
+        db.commit()
+        db.refresh(check)
+    except Exception as e:
+        print(e)
+        return e
+    return {"message": "success"}
+
+
+# @app.get("/return")
+# async def sell(
+#         check_id : int,
+#         current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),
+#         db: Session = Depends(get_db)):
+#     try:
+#         check = db.query(models.Sale).filter(models.Sale.id == check_id).filter(models.Sale.owner_id == current_user.id).first()
+#         check.status = "sotilgan"
+    
+#         db.commit()
+#         db.refresh(check)
+#     except Exception as e:
+#         print(e)
+#         return e
+#     return {"message": "success"}
 
 @app.post("/token/")
 async def login(user_token : Annotated[OAuth2PasswordRequestForm, Depends()],db: Session = Depends(get_db)):

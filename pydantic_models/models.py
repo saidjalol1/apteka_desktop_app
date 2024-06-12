@@ -110,8 +110,8 @@ class SaleItemOut(SaleItemIn):
 class CheckOut(BaseModel):
     id: int
     amount : int
-    status : bool
-    
+    status : str
+
     class Config:
         from_attributes = True
     

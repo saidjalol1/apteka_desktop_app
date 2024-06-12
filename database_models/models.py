@@ -43,7 +43,7 @@ class Sale(Base):
     id = Column(Integer, primary_key=True)
     amount = Column(Integer)
     date_added = Column(DateTime, default=current_time)
-    status = Column(Boolean)
+    status = Column(String)
     payment_type = Column(String)
     owner_id = Column("User", ForeignKey('users.id'))
     

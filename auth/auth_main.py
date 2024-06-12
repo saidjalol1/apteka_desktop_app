@@ -26,7 +26,6 @@ def authenticate_user(username: str, password: str, db):
 
 def get_user(username,db: Session ):
     user = db.query(User).filter(User.username == username).first()
-    print(user)
     return user
 
 
@@ -38,7 +37,6 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session 
         if username is None or user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="could not validated the user")
         user = get_user(username, db)
-        print(user)
         return user
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="coul not validated the user")
