@@ -128,10 +128,11 @@ async def sell(
 async def login(user_token : pydantic_models.models.UserLogin,db: Session = Depends(get_db)):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, db)
+        print(user)
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "Could not validated the User")
         created_token = token.create_access_token(user.username, user.id, timedelta(minutes=1000))
-        return {"access_token": created_token, "token_type": "bearer"}
+        return {"access_token": created_token, "token_type": "bearer", "is_admin":user.is_admin}
     except Exception as e:
         return {"error": e}
 
