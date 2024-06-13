@@ -125,7 +125,7 @@ async def sell(
 #     return {"message": "success"}
 
 @app.post("/token/")
-async def login(user_token : Annotated[OAuth2PasswordRequestForm, Depends()],db: Session = Depends(get_db)):
+async def login(user_token : pydantic_models.models.UserLogin,db: Session = Depends(get_db)):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, db)
         if not user:

@@ -76,7 +76,9 @@ class UserEdit(BaseModel):
     class Config:
         from_attributes = True
 
-
+class UserLogin(BaseModel):
+    username: str
+    password: str
 
 # Salary mdels
 class SalaryInModel(BaseModel):
