@@ -7,18 +7,33 @@ from database_config.database_conf import Base, current_time
 
 class Product(Base):
     __tablename__ = "products"
-
     id = Column(Integer, primary_key=True)
+    
     serial_number = Column(String)
     name = Column(String)
-    price = Column(Float)
-    amount = Column(Integer)
+    
+    
+    box = Column(Integer)
+    amount_in_box = Column(Integer)
     amount_in_package = Column(Integer)
-    remainder = Column(Integer)
+    
     produced_location = Column(String)
     expiry_date = Column(Date)
+    
+    base_price = Column(Float)
+    extra_price_in_percent = Column(Integer)
+    sale_price = Column(Float)
+    sale_price_in_percent = Column(Float)
+    
+    discount = Column(Integer)
+    discount_price = Column(Float)
+    
+    retail_marks = Column(Float)
+    retail_sum = Column(Float)
+    nds = Column(Float)
+    nds_price = Column(Float)
+    
     score = Column(Integer)
-
     sale_product = relationship("SaleItem", back_populates="sale_product_items")
 
 
@@ -26,7 +41,8 @@ class SaleItem(Base):
     __tablename__ = "sale_items"
     
     id = Column(Integer, primary_key=True)
-    amount = Column(Integer)
+    amount_of_box = Column(Integer)
+    amount_of_package = Column(Integer)
     amount_from_package = Column(Integer)
     total_sum = Column(Float)
     

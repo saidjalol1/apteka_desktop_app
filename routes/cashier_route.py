@@ -27,13 +27,15 @@ def user_score_retrieve(user_id, db, date=False):
     serialize = []
     for score in scores:
         item = score.item
+        print(score.date_scored)
         if item.sale_product_items:
             serialize.append(pydantic_models.models.UserScoreOut(
                 score=score.score,
                 date_scored=score.date_scored,
                 item=pydantic_models.models.SaleItemOut(
                     id=item.id,
-                    amount=item.amount,
+                    amount_of_box=item.amount_of_box,
+                    amount_of_package=item.amount_of_package,
                     amount_from_package=item.amount_from_package,
                     total_sum=item.total_sum,
                     product_id=item.product_id,
@@ -42,8 +44,9 @@ def user_score_retrieve(user_id, db, date=False):
                         id=item.sale_product_items.id,
                         serial_number=item.sale_product_items.serial_number,
                         name=item.sale_product_items.name,
-                        price=item.sale_product_items.price,
-                        amount=item.sale_product_items.amount,
+                        sale_price=item.sale_product_items.sale_price,
+                        box=item.sale_product_items.box,
+                        amount_in_box=item.sale_product_items.amount_in_box,
                         amount_in_package=item.sale_product_items.amount_in_package,
                         produced_location=item.sale_product_items.produced_location,
                         expiry_date=item.sale_product_items.expiry_date,
@@ -89,7 +92,7 @@ async def sale(sale_item_in: pydantic_models.models.SaleItemIn,
     sale_item = models.SaleItem(**sale_item_in.model_dump())
     product = db.query(models.Product).filter(models.Product.id == sale_item.product_id).first()
     if product:
-        product.amount -= sale_item.amount
+        product.box -= sale_item.amount_of_box
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
                             
@@ -97,7 +100,7 @@ async def sale(sale_item_in: pydantic_models.models.SaleItemIn,
     db.commit()
     db.refresh(sale_item)
     
-    count_drug = (sale_item.amount * sale_item.sale_product_items.amount_in_package) + sale_item.amount_from_package
+    count_drug = (sale_item.amount_of_box * sale_item.sale_product_items.amount_in_box) + sale_item.amount_of_package
     base_score = sale_item.sale_product_items.score / sale_item.sale_product_items.amount_in_package
     score = count_drug * base_score
     
@@ -128,6 +131,7 @@ async def sale(sale_item_in: pydantic_models.models.SaleItemIn,
 #     db.commit()
 #     db.refresh(sale_item)
 #     return sale_item
+
 @app.get("/user_scores/")
 async def scores(current_user: pydantic_models.models.User = Depends(auth_main.get_current_user), db: Session = Depends(get_db)):
     scores = db.query(models.UserScores).options(joinedload(models.UserScores.item)).filter(models.UserScores.owner_id == current_user.id).all()
@@ -140,7 +144,8 @@ async def scores(current_user: pydantic_models.models.User = Depends(auth_main.g
                 date_scored=score.date_scored,
                 item=pydantic_models.models.SaleItemOut(
                     id=item.id,
-                    amount=item.amount,
+                    amount_of_box=item.amount_of_box,
+                    amount_of_package=item.amount_of_package,
                     amount_from_package=item.amount_from_package,
                     total_sum=item.total_sum,
                     product_id=item.product_id,
@@ -149,8 +154,9 @@ async def scores(current_user: pydantic_models.models.User = Depends(auth_main.g
                         id=item.sale_product_items.id,
                         serial_number=item.sale_product_items.serial_number,
                         name=item.sale_product_items.name,
-                        price=item.sale_product_items.price,
-                        amount=item.sale_product_items.amount,
+                        sale_price=item.sale_product_items.sale_price,
+                        box=item.sale_product_items.box,
+                        amount_in_box=item.sale_product_items.amount_in_box,
                         amount_in_package=item.sale_product_items.amount_in_package,
                         produced_location=item.sale_product_items.produced_location,
                         expiry_date=item.sale_product_items.expiry_date,
@@ -168,7 +174,7 @@ async def sale(
     item = db.query(models.SaleItem).filter(models.SaleItem.id == sale_item_id).first()
     product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
     if product:
-        product.amount += item.amount
+        product.amount_in_box += item.amount_of_box
         
     user_scores = item.user_scores
     for user_score in user_scores:
