@@ -12,8 +12,26 @@ from auth import auth_main, password, token
 import pydantic_models.models
 from routes import cashier_route, admin_routes
 from database_config.database_conf import engine, get_db
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+
+
+
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://example.com",  # Replace with your actual front-end URL
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Allows specific origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 #Route Registery
 app.include_router(cashier_route.app)
