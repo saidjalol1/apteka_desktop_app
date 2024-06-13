@@ -22,6 +22,7 @@ app = FastAPI()
 origins = [
     "http://localhost",
     "http://localhost:8000",
+    "http://localhost:3000/",
     "http://example.com",  # Replace with your actual front-end URL
 ]
 
