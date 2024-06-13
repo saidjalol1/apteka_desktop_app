@@ -43,6 +43,12 @@ current_month = datetime.now().month
 current_year = datetime.now().year
 
 
+
+@app.get("/")
+async def welcome():
+    return {"message":"Wlecome"}
+
+
 @app.get("/home")
 async def home(
         check_id : Optional[int] = None,
