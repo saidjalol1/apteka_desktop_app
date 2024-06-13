@@ -25,7 +25,7 @@ current_month = datetime.now().month
 current_year = datetime.now().year
 
 
-@app.get("/")
+@app.get("/home")
 async def home(
         check_id : Optional[int] = None,
         skip: int = 0, limit: int = 10,
