@@ -36,7 +36,7 @@ async def create_user(userin : pydantic_models.models.CreateUser,current_user: p
         db.refresh(user)
     else:
         print(current_user)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can create user")
+        return {"error":"only admin can access this route"}
     return {"message": "success"}
     
 
@@ -76,7 +76,7 @@ async def salary_give(salary : pydantic_models.models.SalaryInModel,
         db.refresh(slary)
         return {"message": "success"}
     else:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can create user")
+        return {"error":"only admin can access this route"}
 
 # Product Routes
 @app.post("/product/create", response_model=pydantic_models.models.ProductOut)
@@ -84,7 +84,7 @@ async def create_product(product: pydantic_models.models.ProductIn,current_user:
     if current_user.is_admin:
         product = product_fetch_crud.create(db,product)
     else:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can add product")
+        return {"error":"only admin can access this route"}
     return product
 
 
@@ -94,7 +94,7 @@ async def product_edit(product_id : int,product_update: pydantic_models.models.P
     if current_user.is_admin:
         product = db.query(models.Product).filter(models.Product.id == product_id).first()
         if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
+            return {"error":"Mahsulot topilmadi"}
 
         for key, value in product_update.model_dump(exclude_unset=True).items():
             setattr(product, key, value)
@@ -103,7 +103,7 @@ async def product_edit(product_id : int,product_update: pydantic_models.models.P
         db.refresh(product)
         return product
     else:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can edit product")
+        return {"error":"only admin can access this route"}
 
 
 # @app.put("/product/delete")

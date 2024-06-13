@@ -76,7 +76,7 @@ async def profile_edit(user_update: pydantic_models.models.UserEdit,
     current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == current_user.id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        return {"error":"user not found"}
     
     for key, value in user_update.dict(exclude_unset=True).items():
         setattr(user, key, value)
@@ -94,7 +94,7 @@ async def sale(sale_item_in: pydantic_models.models.SaleItemIn,
     if product:
         product.box -= sale_item.amount_of_box
     else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+        return {"error": "Mahsulot topilmadi"}
                             
     db.add(sale_item)
     db.commit()

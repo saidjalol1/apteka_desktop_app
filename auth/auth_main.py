@@ -35,9 +35,9 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session 
         username = payload.get("sub")
         user_id = payload.get("id")
         if username is None or user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="could not validated the user")
+            return {"error":"Bu nom ostidagi foydalanuvchi topilmadi!!!"}
         user = get_user(username, db)
         return user
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="coul not validated the user")
+        return {"error":"Parol yoki Foydalanuvchi nomi xato"}
 
