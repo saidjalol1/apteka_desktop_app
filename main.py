@@ -89,16 +89,14 @@ async def home(
 
 @app.get("/sell")
 async def sell(
-        check_id : int,
-        payment_type : str,
-        total: float,
+        check_object : pydantic_models.models.Sell,
         current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),
         db: Session = Depends(get_db)):
     try:
-        check = db.query(models.Sale).filter(models.Sale.id == check_id).filter(models.Sale.owner_id == current_user.id).first()
+        check = db.query(models.Sale).filter(models.Sale.id == check_object.check_id).filter(models.Sale.owner_id == current_user.id).first()
         check.status = "sotilgan"
-        check.amount = total
-        check.payment_type = payment_type
+        check.amount = check_object.total
+        check.payment_type = check_object.payment_type
     
         db.commit()
         db.refresh(check)
@@ -123,6 +121,19 @@ async def sell(
 #         print(e)
 #         return e
 #     return {"message": "success"}
+
+# @app.post("/token/")
+# async def login(user_token : OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
+#     try:
+#         user = auth_main.authenticate_user(user_token.username,user_token.password, db)
+#         print(user)
+#         if not user:
+#             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "Could not validated the User")
+#         created_token = token.create_access_token(user.username, user.id, timedelta(minutes=1000))
+#         return {"access_token": created_token, "token_type": "bearer", "is_admin":user.is_admin}
+#     except Exception as e:
+#         return {"error": e}
+
 
 @app.post("/token/")
 async def login(user_token : pydantic_models.models.UserLogin,db: Session = Depends(get_db)):

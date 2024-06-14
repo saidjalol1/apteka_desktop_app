@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from typing import Annotated, Optional
+from typing import Annotated, Optional, List
 from fastapi import APIRouter, Body, HTTPException, status,Depends, Query   
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date, and_, extract
@@ -9,6 +9,7 @@ import pydantic_models
 from database_models import models
 from auth import password, auth_main
 from crud import product_fetch_crud
+import pydantic_models.models
 
 
 app = APIRouter(
@@ -29,7 +30,7 @@ async def create_user(userin : pydantic_models.models.CreateUser,current_user: p
             born_date = userin.born_date,
             phone_number = userin.phone_number,
             address = userin.address,
-            shift = userin.shift
+            shift_id = userin.shift_id
         )
         db.add(user)
         db.commit()
@@ -52,7 +53,7 @@ async def create_user(userin : pydantic_models.models.CreateUser,db: Session = D
         born_date = userin.born_date,
         phone_number = userin.phone_number,
         address = userin.address,
-        shift = userin.shift
+        shift_id = userin.shift_id
     )
     db.add(user)
     db.commit()
@@ -105,7 +106,21 @@ async def product_edit(product_id : int,product_update: pydantic_models.models.P
     else:
         return {"error":"only admin can access this route"}
 
+@app.post("/shift/add")
+async def create_shift(shift:pydantic_models.models.ShiftIn,
+                       current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),
+                       db: Session = Depends(get_db)):
+    shift_object = models.UserShift(**shift.model_dump())
+    db.add(shift_object)
+    db.commit()
+    db.refresh(shift_object)
+    return {"message":"seccess"}
 
+
+@app.get("/shifts/", response_model=List[pydantic_models.models.UserShiftOut])
+async def shifts(current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+    shifts = db.query(models.UserShift).all()
+    return shifts
 # @app.put("/product/delete")
 # async def product_delete(product_id : int, 
 #     current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):

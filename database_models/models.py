@@ -93,8 +93,8 @@ class UserSalaries(Base):
 
     giver = relationship('User', foreign_keys=[giver_id], back_populates='salaries_given')
     receiver = relationship('User', foreign_keys=[receiver_id], back_populates='salaries_received')
-
-
+    
+    
 class User(Base):
     __tablename__ = "users"
     
@@ -108,9 +108,19 @@ class User(Base):
     born_date = Column(Date)
     phone_number = Column(String)
     address = Column(String)
-    shift = Column(Integer)
     
     scores = relationship("UserScores", back_populates="owner")
+    shift_id = Column(Integer, ForeignKey('users_shift.id'))
+    shift = relationship("UserShift", back_populates="users")
     salaries_received = relationship('UserSalaries', foreign_keys='UserSalaries.receiver_id', back_populates='receiver')
     salaries_given = relationship('UserSalaries', foreign_keys='UserSalaries.giver_id', back_populates='giver')
     sales = relationship("Sale", back_populates="sale_owner")
+
+
+class UserShift(Base):
+    __tablename__ = "users_shift"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True)
+    users = relationship("User", back_populates="shift")
+
