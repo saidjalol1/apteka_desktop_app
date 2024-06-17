@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from database_models.models import Product
-from pydantic_models.models import ProductIn
+from pydantic_models.product_models import ProductIn
 
 
 # Returns Product According to The Id of it

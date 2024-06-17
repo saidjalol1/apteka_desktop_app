@@ -5,11 +5,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date, and_, extract
 from database_config.database_conf import get_db, current_time
 
-import pydantic_models
+from pydantic_models import product_models, user_models, sale_models, salary_models
 from database_models import models
 from auth import password, auth_main
 from crud import product_fetch_crud
-import pydantic_models.models
+
+
+database_dep : Session = Depends(get_db)
+current_user_dep : user_models.User = Depends(auth_main.get_current_user)
 
 
 app = APIRouter(
@@ -18,23 +21,13 @@ app = APIRouter(
 )
 
 @app.post("/create_user/", status_code=status.HTTP_201_CREATED)
-async def create_user(userin : pydantic_models.models.CreateUser,current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+async def create_user(userin : user_models.CreateUser,current_user = current_user_dep,database = database_dep):
     if current_user.is_admin:
-        user = models.User(
-            username = userin.username,
-            hashed_password = password.pwd_context.hash(userin.password),
-            is_admin = userin.is_admin,
-    
-            first_name = userin.first_name,
-            last_name = userin.last_name,
-            born_date = userin.born_date,
-            phone_number = userin.phone_number,
-            address = userin.address,
-            shift_id = userin.shift_id
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        user = models.User(**userin.model_dump())
+        user.hashed_password = password.pwd_context.hash(userin.hashed_password)
+        database.add(user)
+        database.commit()
+        database.refresh(user)
     else:
         print(current_user)
         return {"error":"only admin can access this route"}
@@ -42,85 +35,67 @@ async def create_user(userin : pydantic_models.models.CreateUser,current_user: p
     
 
 @app.post("/create_admin/", status_code=status.HTTP_201_CREATED, name="create admin")
-async def create_user(userin : pydantic_models.models.CreateUser,db: Session = Depends(get_db)):
-    user = models.User(
-        username = userin.username,
-        hashed_password = password.pwd_context.hash(userin.password),
-        is_admin = userin.is_admin,
-    
-        first_name = userin.is_admin,
-        last_name = userin.last_name,
-        born_date = userin.born_date,
-        phone_number = userin.phone_number,
-        address = userin.address,
-        shift_id = userin.shift_id
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+async def create_user(userin : user_models.CreateUser,database = database_dep):
+    user = models.User(**userin.model_dump())
+    user.hashed_password = password.pwd_context.hash(userin.hashed_password)
+    database.add(user)
+    database.commit()
+    database.refresh(user)
     return {"message": "success"}
 
 
 @app.post("/salary/")
-async def salary_give(salary : pydantic_models.models.SalaryInModel,
-    current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+async def salary_give(salary :salary_models.SalaryInModel,current_user = current_user_dep,database = database_dep):
     if current_user.is_admin:
-        slary = models.UserSalaries(
-            amount = salary.amount,
-            type = salary.type,
-            date_received = salary.date_received,
-            receiver_id = salary.receiver_id,
-            giver_id = current_user.id
-        )
-        db.add(slary)
-        db.commit()
-        db.refresh(slary)
+        slary = models.UserSalaries(**salary.model_dump())
+        slary.giver_id = current_user.id
+        database.add(slary)
+        database.commit()
+        database.refresh(slary)
         return {"message": "success"}
     else:
         return {"error":"only admin can access this route"}
 
 # Product Routes
-@app.post("/product/create", response_model=pydantic_models.models.ProductOut)
-async def create_product(product: pydantic_models.models.ProductIn,current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db:Session = Depends(get_db)):
+@app.post("/product/create", response_model=product_models.ProductOut)
+async def create_product(product: product_models.ProductIn,current_user = current_user_dep,database = database_dep):
     if current_user.is_admin:
-        product = product_fetch_crud.create(db,product)
+        product = product_fetch_crud.create(database,product)
     else:
         return {"error":"only admin can access this route"}
     return product
 
 
 @app.put("/product/edit")
-async def product_edit(product_id : int,product_update: pydantic_models.models.ProductIn,
-    current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+async def product_edit(product_id : int,product_update: product_models.ProductIn,current_user = current_user_dep,database = database_dep):
     if current_user.is_admin:
-        product = db.query(models.Product).filter(models.Product.id == product_id).first()
+        product = database.query(models.Product).filter(models.Product.id == product_id).first()
         if not product:
             return {"error":"Mahsulot topilmadi"}
 
         for key, value in product_update.model_dump(exclude_unset=True).items():
             setattr(product, key, value)
 
-        db.commit()
-        db.refresh(product)
+        database.commit()
+        database.refresh(product)
         return product
     else:
         return {"error":"only admin can access this route"}
 
 @app.post("/shift/add")
-async def create_shift(shift:pydantic_models.models.ShiftIn,
-                       current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),
-                       db: Session = Depends(get_db)):
+async def create_shift(shift:user_models.ShiftIn,current_user = current_user_dep,database = database_dep):
     shift_object = models.UserShift(**shift.model_dump())
-    db.add(shift_object)
-    db.commit()
-    db.refresh(shift_object)
+    database.add(shift_object)
+    database.commit()
+    database.refresh(shift_object)
     return {"message":"seccess"}
 
 
-@app.get("/shifts/", response_model=List[pydantic_models.models.UserShiftOut])
-async def shifts(current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
-    shifts = db.query(models.UserShift).all()
+@app.get("/shifts/", response_model=List[user_models.UserShiftOut])
+async def shifts(current_user = current_user_dep,database = database_dep):
+    shifts = database.query(models.UserShift).all()
     return shifts
+
 # @app.put("/product/delete")
 # async def product_delete(product_id : int, 
 #     current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
@@ -144,8 +119,7 @@ def get_current_quarter_start_date():
 @app.get("/workers/")
 async def workers(start_date: Optional[date] = None, end_date : Optional[date] = None,
     filter: Optional[str] = Query("today", description="Filter criteria: Бугун, Бу ҳафта, Бу ойда, Бу квартал"),
-    current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),
-    db: Session = Depends(get_db)):
+    current_user = current_user_dep,database = database_dep):
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can view worker statistics")
 
@@ -174,9 +148,9 @@ async def workers(start_date: Optional[date] = None, end_date : Optional[date] =
 
     # Fetch statistics for the given date range 
     table = []
-    workers = db.query(models.User).filter(models.User.is_admin == False).all()
+    workers = database.query(models.User).filter(models.User.is_admin == False).all()
     for i in workers:
-        user_sale_ = db.query(models.Sale).filter(models.Sale.status == "sotilgan").filter(models.Sale.owner_id == i.id).filter(and_(\
+        user_sale_ = database.query(models.Sale).filter(models.Sale.status == "sotilgan").filter(models.Sale.owner_id == i.id).filter(and_(\
                                     extract('year', models.Sale.date_added) >= start_date.year,
                                     extract('month', models.Sale.date_added) >= start_date.month,
                                     extract('day', models.Sale.date_added) >= start_date.day,
@@ -187,7 +161,7 @@ async def workers(start_date: Optional[date] = None, end_date : Optional[date] =
         user_sale_count = 0
         for d in user_sale_:
             user_sale_count += 1
-        user_scores = db.query(func.sum(models.UserScores.score)).\
+        user_scores = database.query(func.sum(models.UserScores.score)).\
                                 filter(models.UserScores.owner_id == i.id).\
                                 filter(and_(
                                     extract('year', models.UserScores.date_scored) >= start_date.year,
@@ -198,7 +172,7 @@ async def workers(start_date: Optional[date] = None, end_date : Optional[date] =
                                     extract('day', models.UserScores.date_scored) <= end_date.day,
                                 )).\
                                 scalar()
-        avans = db.query(func.sum(models.UserSalaries.amount)).\
+        avans = database.query(func.sum(models.UserSalaries.amount)).\
                                 filter(models.UserSalaries.receiver_id == i.id).\
                                 filter(models.UserSalaries.type == "avans").\
                                 filter(and_(
@@ -211,7 +185,7 @@ async def workers(start_date: Optional[date] = None, end_date : Optional[date] =
                                 )).\
                                 scalar()       
                                 
-        user_salaries = db.query(func.sum(models.UserSalaries.amount)).\
+        user_salaries = database.query(func.sum(models.UserSalaries.amount)).\
                                 filter(models.UserSalaries.receiver_id == i.id).\
                                 filter(models.UserSalaries.type == "oylik").\
                                 filter(and_(
@@ -223,7 +197,7 @@ async def workers(start_date: Optional[date] = None, end_date : Optional[date] =
                                     extract('day', models.UserSalaries.date_received) <= end_date.day,
                                 )).\
                                 scalar()
-        user_bonus = db.query(func.sum(models.UserSalaries.amount)).\
+        user_bonus = database.query(func.sum(models.UserSalaries.amount)).\
                                 filter(models.UserSalaries.receiver_id == i.id).\
                                 filter(models.UserSalaries.type == "bonus").\
                                 filter(and_(
@@ -245,8 +219,6 @@ async def workers(start_date: Optional[date] = None, end_date : Optional[date] =
             "user_bonus":user_bonus
         })
         
-   
-
     return {
         "Ишчилар статистикаси": table
     }

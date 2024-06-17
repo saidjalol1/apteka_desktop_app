@@ -3,15 +3,19 @@ from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from database_config.database_conf import get_db, current_time
 from sqlalchemy import and_
-import pydantic_models
+
+from pydantic_models import user_models, product_models, sale_models, salary_models
 from auth import auth_main
 from database_models import models
 from sqlalchemy import func
+
+
 app = APIRouter(
      tags=["Kassir Routerlari"]
 )
 
-
+database_dep : Session = Depends(get_db)
+current_user_dep : user_models.User = Depends(auth_main.get_current_user)
 
 def user_score_retrieve(user_id, db, date=False):
     today_date = current_time().date()
@@ -29,10 +33,10 @@ def user_score_retrieve(user_id, db, date=False):
         item = score.item
         print(score.date_scored)
         if item.sale_product_items:
-            serialize.append(pydantic_models.models.UserScoreOut(
+            serialize.append(user_models.UserScoreOut(
                 score=score.score,
                 date_scored=score.date_scored,
-                item=pydantic_models.models.SaleItemOut(
+                item= sale_models.SaleItemOut(
                     id=item.id,
                     amount_of_box=item.amount_of_box,
                     amount_of_package=item.amount_of_package,
@@ -40,7 +44,7 @@ def user_score_retrieve(user_id, db, date=False):
                     total_sum=item.total_sum,
                     product_id=item.product_id,
                     sale_id=item.sale_id,
-                    sale_product_items=pydantic_models.models.ProductOut(
+                    sale_product_items= sale_models.ProductOut(
                         id=item.sale_product_items.id,
                         serial_number=item.sale_product_items.serial_number,
                         name=item.sale_product_items.name,
@@ -57,12 +61,11 @@ def user_score_retrieve(user_id, db, date=False):
     return serialize
 
 @app.get("/profile/", name="profil")
-async def cashier(start_date: date = Query(None), end_date: date = Query(None),
-    current_user: models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+async def cashier(start_date: date = Query(None), end_date: date = Query(None),current_user = current_user_dep,database = database_dep):
     
-    user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == current_user.id).options(joinedload(models.UserSalaries.giver)).all()
-    user_scores = user_score_retrieve(current_user.id, db)
-    today_user_retrieve = user_score_retrieve(current_user.id, db, date=True)
+    user_salaries = database.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == current_user.id).options(joinedload(models.UserSalaries.giver)).all()
+    user_scores = user_score_retrieve(current_user.id, database)
+    today_user_retrieve = user_score_retrieve(current_user.id, database, date=True)
     today_score = sum([i.score for i in today_user_retrieve])
     print(today_user_retrieve)
     # if start_date and end_date:
@@ -72,33 +75,31 @@ async def cashier(start_date: date = Query(None), end_date: date = Query(None),
 
 
 @app.put("/profile/edit")
-async def profile_edit(user_update: pydantic_models.models.UserEdit,
-    current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+async def profile_edit(user_update: user_models.UserEdit,current_user = current_user_dep,database = database_dep):
+    user = database.query(models.User).filter(models.User.id == current_user.id).first()
     if not user:
         return {"error":"user not found"}
     
     for key, value in user_update.dict(exclude_unset=True).items():
         setattr(user, key, value)
     
-    db.commit()
-    db.refresh(user)
+    database.commit()
+    database.refresh(user)
     return user
 
 
 @app.post("/add_to_check/")
-async def sale(sale_item_in: pydantic_models.models.SaleItemIn,
-    current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_dep,database = database_dep):
     sale_item = models.SaleItem(**sale_item_in.model_dump())
-    product = db.query(models.Product).filter(models.Product.id == sale_item.product_id).first()
+    product = database.query(models.Product).filter(models.Product.id == sale_item.product_id).first()
     if product:
         product.box -= sale_item.amount_of_box
     else:
         return {"error": "Mahsulot topilmadi"}
                             
-    db.add(sale_item)
-    db.commit()
-    db.refresh(sale_item)
+    database.add(sale_item)
+    database.commit()
+    database.refresh(sale_item)
     
     count_drug = (sale_item.amount_of_box * sale_item.sale_product_items.amount_in_box) + sale_item.amount_of_package
     base_score = sale_item.sale_product_items.score / sale_item.sale_product_items.amount_in_package
@@ -111,9 +112,9 @@ async def sale(sale_item_in: pydantic_models.models.SaleItemIn,
         sale_item_id = sale_item.id
     )
     print(user_score)
-    db.add(user_score)
-    db.commit()
-    db.refresh(user_score)
+    database.add(user_score)
+    database.commit()
+    database.refresh(user_score)
     return {"message": "success"}
 
 
@@ -133,16 +134,16 @@ async def sale(sale_item_in: pydantic_models.models.SaleItemIn,
 #     return sale_item
 
 @app.get("/user_scores/")
-async def scores(current_user: pydantic_models.models.User = Depends(auth_main.get_current_user), db: Session = Depends(get_db)):
-    scores = db.query(models.UserScores).options(joinedload(models.UserScores.item)).filter(models.UserScores.owner_id == current_user.id).all()
+async def scores(current_user = current_user_dep,database = database_dep):
+    scores = database.query(models.UserScores).options(joinedload(models.UserScores.item)).filter(models.UserScores.owner_id == current_user.id).all()
     serialize = []
     for score in scores:
         item = score.item
         if item.sale_product_items:
-            serialize.append(pydantic_models.models.UserScoreOut(
+            serialize.append(user_models.UserScoreOut(
                 score=score.score,
                 date_scored=score.date_scored,
-                item=pydantic_models.models.SaleItemOut(
+                item= sale_models.SaleItemOut(
                     id=item.id,
                     amount_of_box=item.amount_of_box,
                     amount_of_package=item.amount_of_package,
@@ -150,7 +151,7 @@ async def scores(current_user: pydantic_models.models.User = Depends(auth_main.g
                     total_sum=item.total_sum,
                     product_id=item.product_id,
                     sale_id=item.sale_id,
-                    sale_product_items=pydantic_models.models.ProductOut(
+                    sale_product_items= sale_models.ProductOut(
                         id=item.sale_product_items.id,
                         serial_number=item.sale_product_items.serial_number,
                         name=item.sale_product_items.name,
@@ -167,23 +168,21 @@ async def scores(current_user: pydantic_models.models.User = Depends(auth_main.g
     return serialize
 
 @app.delete("/delete_check_item/")
-async def sale(
-    sale_item_id : int,
-    current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
+async def sale(sale_item_id : int,current_user = current_user_dep,database = database_dep):
     
-    item = db.query(models.SaleItem).filter(models.SaleItem.id == sale_item_id).first()
-    product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
+    item = database.query(models.SaleItem).filter(models.SaleItem.id == sale_item_id).first()
+    product = database.query(models.Product).filter(models.Product.id == item.product_id).first()
     if product:
         product.amount_in_box += item.amount_of_box
         
     user_scores = item.user_scores
     for user_score in user_scores:
-        db.delete(user_score)
+        database.delete(user_score)
     if item:
-        db.delete(item)
+        database.delete(item)
     else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
-    db.commit()
+        return {"message":"Mahsulot topilmadi"}
+    database.commit()
     return {"message": "success"}
 
 

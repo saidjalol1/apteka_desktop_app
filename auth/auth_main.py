@@ -40,4 +40,4 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session 
         return user
     except JWTError:
         return {"error":"Parol yoki Foydalanuvchi nomi xato"}
-
+    
