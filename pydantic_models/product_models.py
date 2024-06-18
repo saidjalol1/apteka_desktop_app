@@ -18,15 +18,10 @@ class ProductIn(BaseModel):
     extra_price_in_percent : Optional[Union[int, None]] = None
     sale_price : Optional[Union[float, None]] = None
     sale_price_in_percent : Optional[Union[int, None]] = None
-    discount : Optional[Union[int, None]] = None
     discount_price : Optional[Union[float, None]] = None
    
     score : Optional[Union[int, None]] = None
     
-    retail_marks : Optional[Union[float, None]] = None
-    retail_sum : Optional[Union[float, None]] = None
-    nds : Optional[Union[float, None]] = None
-    nds_price : Optional[Union[float, None]] = None
 
     class Config:
         from_attributes = True

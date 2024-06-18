@@ -24,14 +24,8 @@ class Product(Base):
     extra_price_in_percent = Column(Integer)
     sale_price = Column(Float)
     sale_price_in_percent = Column(Float)
-    
-    discount = Column(Integer)
     discount_price = Column(Float)
     
-    retail_marks = Column(Float)
-    retail_sum = Column(Float)
-    nds = Column(Float)
-    nds_price = Column(Float)
     
     score = Column(Integer)
     sale_product = relationship("SaleItem", back_populates="sale_product_items")
