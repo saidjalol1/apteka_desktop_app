@@ -93,7 +93,8 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
     sale_item = models.SaleItem(**sale_item_in.model_dump())
     product = database.query(models.Product).filter(models.Product.id == sale_item.product_id).first()
     if product:
-        product.box -= sale_item.amount_of_box
+        count = (sale_item.amount_of_box )
+        overall_amount = 0
     else:
         return {"error": "Mahsulot topilmadi"}
                             
@@ -101,9 +102,7 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
     database.commit()
     database.refresh(sale_item)
     
-    count_drug = (sale_item.amount_of_box * sale_item.sale_product_items.amount_in_box) + sale_item.amount_of_package
-    base_score = sale_item.sale_product_items.score / sale_item.sale_product_items.amount_in_package
-    score = count_drug * base_score
+    score = 0
     
     
     user_score = models.UserScores(

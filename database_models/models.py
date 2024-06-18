@@ -26,6 +26,7 @@ class Product(Base):
     sale_price_in_percent = Column(Float)
     discount_price = Column(Float)
     
+    overall_amount = Column(Integer, default=0)
     
     score = Column(Integer)
     sale_product = relationship("SaleItem", back_populates="sale_product_items")

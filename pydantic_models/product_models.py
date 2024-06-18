@@ -22,6 +22,7 @@ class ProductIn(BaseModel):
    
     score : Optional[Union[int, None]] = None
     
+    
 
     class Config:
         from_attributes = True

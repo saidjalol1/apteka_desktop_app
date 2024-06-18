@@ -14,6 +14,7 @@ def get_products(db: Session, skip: int = 0, limit: int = 10):
 #Prduct Creation
 def create(db: Session, product:ProductIn):
     db_product = Product(**product.model_dump())
+    db_product.overall_amount = db_product.amount_in_box * db_product.amount_in_package * db_product.box
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
