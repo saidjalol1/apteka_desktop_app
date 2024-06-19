@@ -9,8 +9,8 @@ from pydantic_models import product_models, user_models, sale_models, salary_mod
 from database_models import models
 from auth import password, auth_main
 from crud import product_fetch_crud
-
-
+from util.profile_util_functions import sale_statistics, top_10_products_statistics, workers
+from fastapi.encoders import jsonable_encoder
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
 
@@ -110,11 +110,7 @@ async def shifts(current_user = current_user_dep,database = database_dep):
 #     else:
 #         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can delete product")
 
-# Helper function to get the start date of the current quarter
-def get_current_quarter_start_date():
-    today = current_time().date().today()
-    quarter = (today.month - 1) // 3 + 1
-    return date(today.year, 3 * quarter - 2, 1)
+
 
 @app.get("/workers/")
 async def workers(start_date: Optional[date] = None, end_date : Optional[date] = None,
@@ -123,102 +119,13 @@ async def workers(start_date: Optional[date] = None, end_date : Optional[date] =
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can view worker statistics")
 
-    today = current_time().date()
-    if start_date and end_date:
-        pass
-    elif filter == "today":
-        start_date = today
-        end_date = today
-    elif filter == "thisweek":
-        start_date = today - timedelta(days=today.weekday())
-        end_date = today
-        print(start_date, end_date)
-    elif filter == "thismonth":
-        start_date = date(today.year, today.month, 1)
-        end_date = today
-    elif filter == "thisquarter":
-        start_date = get_current_quarter_start_date()
-        end_date = today
-    else:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filter criteria")
-
-    # Debugging print statements
-    print(f"Filter: {filter}")
-    print(f"Start Date: {start_date}, End Date: {end_date}")
-
-    # Fetch statistics for the given date range 
-    table = []
-    workers = database.query(models.User).filter(models.User.is_admin == False).all()
-    for i in workers:
-        user_sale_ = database.query(models.Sale).filter(models.Sale.status == "sotilgan").filter(models.Sale.owner_id == i.id).filter(and_(\
-                                    extract('year', models.Sale.date_added) >= start_date.year,
-                                    extract('month', models.Sale.date_added) >= start_date.month,
-                                    extract('day', models.Sale.date_added) >= start_date.day,
-                                    extract('year', models.Sale.date_added) <= end_date.year,
-                                    extract('month', models.Sale.date_added) <= end_date.month,
-                                    extract('day', models.Sale.date_added) <= end_date.day,
-                                )).all()
-        user_sale_count = 0
-        for d in user_sale_:
-            user_sale_count += 1
-        user_scores = database.query(func.sum(models.UserScores.score)).\
-                                filter(models.UserScores.owner_id == i.id).\
-                                filter(and_(
-                                    extract('year', models.UserScores.date_scored) >= start_date.year,
-                                    extract('month', models.UserScores.date_scored) >= start_date.month,
-                                    extract('day', models.UserScores.date_scored) >= start_date.day,
-                                    extract('year', models.UserScores.date_scored) <= end_date.year,
-                                    extract('month', models.UserScores.date_scored) <= end_date.month,
-                                    extract('day', models.UserScores.date_scored) <= end_date.day,
-                                )).\
-                                scalar()
-        avans = database.query(func.sum(models.UserSalaries.amount)).\
-                                filter(models.UserSalaries.receiver_id == i.id).\
-                                filter(models.UserSalaries.type == "avans").\
-                                filter(and_(
-                                    extract('year', models.UserSalaries.date_received) >= start_date.year,
-                                    extract('month', models.UserSalaries.date_received) >= start_date.month,
-                                    extract('day', models.UserSalaries.date_received) >= start_date.day,
-                                    extract('year', models.UserSalaries.date_received) <= end_date.year,
-                                    extract('month', models.UserSalaries.date_received) <= end_date.month,
-                                    extract('day', models.UserSalaries.date_received) <= end_date.day,
-                                )).\
-                                scalar()       
-                                
-        user_salaries = database.query(func.sum(models.UserSalaries.amount)).\
-                                filter(models.UserSalaries.receiver_id == i.id).\
-                                filter(models.UserSalaries.type == "oylik").\
-                                filter(and_(
-                                    extract('year', models.UserSalaries.date_received) >= start_date.year,
-                                    extract('month', models.UserSalaries.date_received) >= start_date.month,
-                                    extract('day', models.UserSalaries.date_received) >= start_date.day,
-                                    extract('year', models.UserSalaries.date_received) <= end_date.year,
-                                    extract('month', models.UserSalaries.date_received) <= end_date.month,
-                                    extract('day', models.UserSalaries.date_received) <= end_date.day,
-                                )).\
-                                scalar()
-        user_bonus = database.query(func.sum(models.UserSalaries.amount)).\
-                                filter(models.UserSalaries.receiver_id == i.id).\
-                                filter(models.UserSalaries.type == "bonus").\
-                                filter(and_(
-                                    extract('year', models.UserSalaries.date_received) >= start_date.year,
-                                    extract('month', models.UserSalaries.date_received) >= start_date.month,
-                                    extract('day', models.UserSalaries.date_received) >= start_date.day,
-                                    extract('year', models.UserSalaries.date_received) <= end_date.year,
-                                    extract('month', models.UserSalaries.date_received) <= end_date.month,
-                                    extract('day', models.UserSalaries.date_received) <= end_date.day,
-                                )).\
-                                scalar()               
-
-        table.append({
-            "worker": i.first_name + ' ' + i.last_name,
-            "user_sale_count":user_sale_count,
-            "user_scores":user_scores,
-            "avans":avans,
-            "user_salaries":user_salaries,
-            "user_bonus":user_bonus
-        })
-        
-    return {
-        "Ишчилар статистикаси": table
-    }
+    results = await workers(database,start_date, end_date, filter)
+    return {"result": results}
+    
+@app.get("/statistics/")
+async def statistcs(current_user = current_user_dep,database = database_dep):
+    
+    context = sale_statistics(database)
+    top_10_products = top_10_products_statistics(database)
+    workers_table = workers(database)
+    return {"graph_objects": context, "top_10_products": top_10_products, "workers_table": workers_table}

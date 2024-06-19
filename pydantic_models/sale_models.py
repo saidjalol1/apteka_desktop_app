@@ -35,3 +35,18 @@ class CheckOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class Return(BaseModel):
+    product_id : int
+    box : Optional[Union[int, None]] = None
+    amount_in_box : Optional[Union[int, None]] = None
+    amount_in_package : Optional[Union[int, None]] = None
+    
+
+class CheckLayout(BaseModel):
+    name : str
+    logo : str
+    phone : str
+    address : str
+    image : str
+    shift_id : int

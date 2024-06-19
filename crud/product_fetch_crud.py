@@ -9,7 +9,7 @@ def get_product(db : Session, product_id: int):
 
 #Returns Products with pagination
 def get_products(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(Product).offset(skip).limit(limit).all()
+    return db.query(Product).filter(Product.overall_amount > 0).offset(skip).limit(limit).all()
 
 #Prduct Creation
 def create(db: Session, product:ProductIn):

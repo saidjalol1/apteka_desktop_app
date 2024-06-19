@@ -110,6 +110,8 @@ class User(Base):
     salaries_received = relationship('UserSalaries', foreign_keys='UserSalaries.receiver_id', back_populates='receiver')
     salaries_given = relationship('UserSalaries', foreign_keys='UserSalaries.giver_id', back_populates='giver')
     sales = relationship("Sale", back_populates="sale_owner")
+    
+    expances = relationship("UserExpances", back_populates="expance_owner")
 
 
 class UserShift(Base):
@@ -118,4 +120,32 @@ class UserShift(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
     users = relationship("User", back_populates="shift")
+    check_layout = relationship("CheckLayout", back_populates="check_shift")
 
+
+class CheckLayout(Base):
+    __tablename__ = "check_layout"
+     
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True)
+    image  = Column(String)
+    logo = Column(String)
+    phone = Column(String)
+    address = Column(String)
+    shift_id = Column(Integer, ForeignKey('users_shift.id'))
+    
+    
+    check_shift = relationship("UserShift", back_populates="check_layout")
+    
+
+class UserExpances(Base):
+    __tablename__ = "user_expances"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True)
+    amount = Column(Float)
+    date_added = Column(DateTime, default=current_time)
+    
+    expance_owner_id = Column(Integer, ForeignKey('users.id'))
+    expance_owner = relationship("User", back_populates="expances")
+    

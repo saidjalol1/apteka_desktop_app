@@ -30,7 +30,7 @@ class ProductIn(BaseModel):
     
 class ProductOut(ProductIn):
     id : int
-
+    overall_amount : Optional[int] = None
     class Config:
         from_attributes = True
         

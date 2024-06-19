@@ -58,10 +58,8 @@ async def home(
         current_user = current_user_dep,database = database_dep):
     
     products = product_fetch_crud.get_products(database, skip, limit)
-    user_scores = (database.query(models.UserScores).filter(models.UserScores.owner_id == current_user.id,
-        extract('month', models.UserScores.date_scored) == current_month,
-        extract('year', models.UserScores.date_scored) == current_year).all())
-    this_month_score = sum(score.score for score in user_scores)
+    user_scores = database.query(models.UserScores).filter(models.UserScores.owner_id == current_user.id).all()
+    user_score = sum(score.score for score in user_scores)
     items = []
     if check_id:
        check =  database.query(models.Sale).filter(models.Sale.id == check_id).first()
@@ -80,14 +78,14 @@ async def home(
     response_products = [ product_models.ProductOut.model_validate(product) for product in products]
     object = {
         "products": response_products,
-        "this_month_score": this_month_score,
+        "user_scores": user_score,
         "check": response_check_model,
         "items": response_items
     }
     return object
 
 
-@app.get("/sell")
+@app.post("/sell")
 async def sell(
         check_object : sale_models.Sell,
         current_user = current_user_dep,database = database_dep):
@@ -101,25 +99,30 @@ async def sell(
         database.refresh(check)
         return {"message": "success"}
     except Exception as e:
+            return {"error":"Bu check boshqa sotuvchiga tegishli"}
+
+
+@app.post("/return")
+async def return_endpoint(
+        return_object : sale_models.Return,
+        current_user: user_models.User = Depends(auth_main.get_current_user),
+        db: Session = Depends(get_db)):
+    try:
+        product = db.query(models.Product).filter(models.Product.id == return_object.product_id).first()
+        if return_object.box:
+            product.overall_amount += product.amount_in_box *  product.amount_in_package * return_object.box 
+        if return_object.amount_in_box:
+            product.overall_amount += product.amount_in_box * return_object.amount_in_box
+        if return_object.amount_in_package:
+            product.overall_amount += return_object.amount_in_package
+        product.box = product.overall_amount // (product.amount_in_box * product.amount_in_package)
+        db.commit()
+        db.refresh(product)
+        return {"message": "success"}
+    except Exception as e:
         print(e)
-        return e
-
-
-# @app.get("/return")
-# async def sell(
-#         check_id : int,
-#         current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),
-#         db: Session = Depends(get_db)):
-#     try:
-#         check = db.query(models.Sale).filter(models.Sale.id == check_id).filter(models.Sale.owner_id == current_user.id).first()
-#         check.status = "sotilgan"
+        return {"error": e}
     
-#         db.commit()
-#         db.refresh(check)
-#     except Exception as e:
-#         print(e)
-#         return e
-#     return {"message": "success"}
 
 # @app.post("/token/")
 # async def login(user_token : OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):

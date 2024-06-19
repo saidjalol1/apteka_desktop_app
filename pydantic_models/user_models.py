@@ -42,6 +42,16 @@ class UserEdit(BaseModel):
         from_attributes = True
 
 
+class UserExpancesIn(BaseModel):
+    name : str
+    amount : float
+
+class UserExpancesOut(UserExpancesIn):
+    id : Optional[Union[int, None]] = None
+
+    class Config:
+        from_attributes = True
+        
 class UserLogin(BaseModel):
     username: str
     password: str

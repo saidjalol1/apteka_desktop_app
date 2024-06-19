@@ -1,14 +1,14 @@
 from datetime import date
+from typing import List
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from database_config.database_conf import get_db, current_time
-from sqlalchemy import and_
 
 from pydantic_models import user_models, product_models, sale_models, salary_models
 from auth import auth_main
 from database_models import models
-from sqlalchemy import func
 
+from  util.profile_util_functions import today_user_score, user_score_retrieve, user_salaries
 
 app = APIRouter(
      tags=["Kassir Routerlari"]
@@ -17,60 +17,20 @@ app = APIRouter(
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
 
-def user_score_retrieve(user_id, db, date=False):
-    today_date = current_time().date()
-    print(today_date)
-    if date:
-        scores = db.query(models.UserScores)\
-               .options(joinedload(models.UserScores.item))\
-               .filter(models.UserScores.owner_id == user_id)\
-               .filter(models.UserScores.date_scored == today_date)\
-               .all()
-    else:
-        scores = db.query(models.UserScores).options(joinedload(models.UserScores.item)).filter(models.UserScores.owner_id == user_id).all()
-    serialize = []
-    for score in scores:
-        item = score.item
-        print(score.date_scored)
-        if item.sale_product_items:
-            serialize.append(user_models.UserScoreOut(
-                score=score.score,
-                date_scored=score.date_scored,
-                item= sale_models.SaleItemOut(
-                    id=item.id,
-                    amount_of_box=item.amount_of_box,
-                    amount_of_package=item.amount_of_package,
-                    amount_from_package=item.amount_from_package,
-                    total_sum=item.total_sum,
-                    product_id=item.product_id,
-                    sale_id=item.sale_id,
-                    sale_product_items= sale_models.ProductOut(
-                        id=item.sale_product_items.id,
-                        serial_number=item.sale_product_items.serial_number,
-                        name=item.sale_product_items.name,
-                        sale_price=item.sale_product_items.sale_price,
-                        box=item.sale_product_items.box,
-                        amount_in_box=item.sale_product_items.amount_in_box,
-                        amount_in_package=item.sale_product_items.amount_in_package,
-                        produced_location=item.sale_product_items.produced_location,
-                        expiry_date=item.sale_product_items.expiry_date,
-                        score=item.sale_product_items.score
-                    )
-                )
-            ))
-    return serialize
 
 @app.get("/profile/", name="profil")
-async def cashier(start_date: date = Query(None), end_date: date = Query(None),current_user = current_user_dep,database = database_dep):
-    
-    user_salaries = database.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == current_user.id).options(joinedload(models.UserSalaries.giver)).all()
+async def cashier(date: date = Query(None),current_user = current_user_dep,database = database_dep):
+    # If date is not given
+    user_salary = user_salaries(current_user.id,database)
     user_scores = user_score_retrieve(current_user.id, database)
-    today_user_retrieve = user_score_retrieve(current_user.id, database, date=True)
+    # If date is given
+    if date:
+        user_salary = user_salaries(current_user.id,database, date)
+        user_scores = user_score_retrieve(current_user.id, database, date)
+    today_user_retrieve = today_user_score(current_user.id, database)
     today_score = sum([i.score for i in today_user_retrieve])
     print(today_user_retrieve)
-    # if start_date and end_date:
-    
-    profile_data = {"user": current_user,"user_salaries": user_salaries, "user_scores":user_scores, "score_today":today_score}
+    profile_data = {"user": current_user,"user_salaries": user_salary, "user_scores":user_scores, "score_today":today_score}
     return profile_data
 
 
@@ -93,8 +53,21 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
     sale_item = models.SaleItem(**sale_item_in.model_dump())
     product = database.query(models.Product).filter(models.Product.id == sale_item.product_id).first()
     if product:
-        count = (sale_item.amount_of_box )
-        overall_amount = 0
+        box = 0
+        package = 0
+        from_package = 0
+        if sale_item_in.amount_of_box:
+            box = product.amount_in_box *  product.amount_in_package * sale_item_in.amount_of_box 
+        if sale_item_in.amount_of_package:
+            package = product.amount_in_box * sale_item_in.amount_of_package
+        if sale_item_in.amount_from_package:
+            from_package = sale_item_in.amount_from_package
+        overall_for_sale = sum([box, package,from_package])
+        if product.overall_amount >= overall_for_sale:
+            product.overall_amount -= sum([box, package,from_package])
+            product.box = product.overall_amount // (product.amount_in_box * product.amount_in_package)
+        else:
+            return {"error":"Omborda Mahsulot Yetarli emas"}
     else:
         return {"error": "Mahsulot topilmadi"}
                             
@@ -102,7 +75,8 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
     database.commit()
     database.refresh(sale_item)
     
-    score = 0
+    base_of_score = sum([box, package,from_package])
+    score = product.score // base_of_score
     
     
     user_score = models.UserScores(
@@ -116,55 +90,6 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
     database.refresh(user_score)
     return {"message": "success"}
 
-
-# @app.put("/update_check_item/")
-# async def sale(
-#     sale_item_id : int,
-#     sale_item_update: pydantic_models.models.SaleItemIn,
-#     current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
-#     sale_item = db.query(models.SaleItem).filter(models.SaleItem.id == sale_item_id).first()
-#     if not sale_item:
-#             raise HTTPException(status_code=404, detail="Product not found")
-#     for key, value in sale_item_update.model_dump(exclude_unset=True).items():
-#         setattr(sale_item, key, value)
-
-#     db.commit()
-#     db.refresh(sale_item)
-#     return sale_item
-
-@app.get("/user_scores/")
-async def scores(current_user = current_user_dep,database = database_dep):
-    scores = database.query(models.UserScores).options(joinedload(models.UserScores.item)).filter(models.UserScores.owner_id == current_user.id).all()
-    serialize = []
-    for score in scores:
-        item = score.item
-        if item.sale_product_items:
-            serialize.append(user_models.UserScoreOut(
-                score=score.score,
-                date_scored=score.date_scored,
-                item= sale_models.SaleItemOut(
-                    id=item.id,
-                    amount_of_box=item.amount_of_box,
-                    amount_of_package=item.amount_of_package,
-                    amount_from_package=item.amount_from_package,
-                    total_sum=item.total_sum,
-                    product_id=item.product_id,
-                    sale_id=item.sale_id,
-                    sale_product_items= sale_models.ProductOut(
-                        id=item.sale_product_items.id,
-                        serial_number=item.sale_product_items.serial_number,
-                        name=item.sale_product_items.name,
-                        sale_price=item.sale_product_items.sale_price,
-                        box=item.sale_product_items.box,
-                        amount_in_box=item.sale_product_items.amount_in_box,
-                        amount_in_package=item.sale_product_items.amount_in_package,
-                        produced_location=item.sale_product_items.produced_location,
-                        expiry_date=item.sale_product_items.expiry_date,
-                        score=item.sale_product_items.score
-                    )
-                )
-            ))
-    return serialize
 
 @app.delete("/delete_check_item/")
 async def sale(sale_item_id : int,current_user = current_user_dep,database = database_dep):
@@ -185,3 +110,25 @@ async def sale(sale_item_id : int,current_user = current_user_dep,database = dat
     return {"message": "success"}
 
 
+@app.post("/expance/add")
+async def expance(expance: user_models.UserExpancesIn,current_user = current_user_dep, database = database_dep):
+    try:
+        expance_obj = models.UserExpances(**expance.model_dump())
+        expance_obj.expance_owner_id = current_user.id
+        database.add(expance_obj)
+        database.commit()
+        database.refresh(expance_obj)
+    except Exception as e:
+        print(e)
+        return {"error": e}
+    return {"message":"Success"}
+
+
+@app.get("/expance/all", response_model= List[user_models.UserExpancesOut])
+async def expance(current_user = current_user_dep, database = database_dep):
+    try:
+        expances = database.query(models.UserExpances).all()
+        return expances
+    except Exception as e:
+        print(e)
+        return {"error": e}
