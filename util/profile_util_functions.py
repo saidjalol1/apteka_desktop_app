@@ -525,3 +525,64 @@ def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth")
         
     return table
 
+def get_sales_with_details(session: Session, start_date=None, end_date=None, filter="thismonth"):
+    today = current_time().date()
+    if start_date and end_date:
+        pass
+    elif filter == "today":
+        start_date = today
+        end_date = today
+    elif filter == "thisweek":
+        start_date = today - timedelta(days=today.weekday())
+        end_date = today
+    elif filter == "thismonth":
+        start_date = date(today.year, today.month, 1)
+        end_date = today
+    elif filter == "thisquarter":
+        start_date = get_current_quarter_start_date()
+        end_date = today
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filter criteria")
+
+    # Query to get sales, their owners, and the user shift details for the selected period
+    sales_with_details = session.query(
+        models.Sale.id,
+        models.Sale.amount,
+        models.Sale.date_added,
+        models.Sale.status,
+        models.Sale.payment_type,
+        models.User.username.label('owner_name'),
+        models.UserShift.name.label('shift_name')
+    ).join(
+        models.User, models.User.id == models.Sale.owner_id
+    ).join(
+        models.UserShift, models.UserShift.id == models.User.shift_id
+    ).filter(
+        and_(
+            models.Sale.status == "sotilgan",
+            extract('year', models.Sale.date_added) >= start_date.year,
+            extract('month', models.Sale.date_added) >= start_date.month,
+            extract('day', models.Sale.date_added) >= start_date.day,
+            extract('year', models.Sale.date_added) <= end_date.year,
+            extract('month', models.Sale.date_added) <= end_date.month,
+            extract('day', models.Sale.date_added) <= end_date.day
+        )
+    ).order_by(
+        models.Sale.date_added.desc()  # Order by date added descending
+    ).all()
+
+    # Prepare the sales data in a list of dictionaries
+    sales_statistics = []
+    for sale in sales_with_details:
+        sale_dict = {
+            'sale_id': sale.id,
+            'amount': sale.amount,
+            'date_added': sale.date_added,
+            'status': sale.status,
+            'payment_type': sale.payment_type,
+            'owner_name': sale.owner_name,
+            'shift_name': sale.shift_name
+        }
+        sales_statistics.append(sale_dict)
+
+    return sales_statistics

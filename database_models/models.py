@@ -31,7 +31,7 @@ class Product(Base):
     sale_price = Column(Float)
     sale_price_in_percent = Column(Float)
     discount_price = Column(Float)
-    
+    person = Column(String)
     overall_amount = Column(Integer, default=0)
     type_id  = Column("Category", ForeignKey('category.id'))
     score = Column(Integer)
@@ -152,7 +152,7 @@ class UserExpances(Base):
     __tablename__ = "user_expances"
     
     id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True)
+    name = Column(String)
     amount = Column(Float)
     date_added = Column(DateTime, default=current_time)
     

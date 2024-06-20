@@ -9,7 +9,7 @@ from pydantic_models import product_models, user_models, sale_models, salary_mod
 from database_models import models
 from auth import password, auth_main
 from crud import product_fetch_crud
-from util.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports
+from util.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports, get_sales_with_details
 from fastapi.encoders import jsonable_encoder
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
@@ -96,6 +96,21 @@ async def shifts(current_user = current_user_dep,database = database_dep):
     shifts = database.query(models.UserShift).all()
     return shifts
 
+
+@app.get("/category/", response_model=List[product_models.CategoryOut])
+async def shifts(current_user = current_user_dep,database = database_dep):
+    category = database.query(models.Category).all()
+    return category
+
+
+@app.post("/category/add")
+async def create_shift(shift:product_models.CategoryIn,current_user = current_user_dep,database = database_dep):
+    categiry_object = models.Category(**shift.model_dump())
+    database.add(categiry_object)
+    database.commit()
+    database.refresh(categiry_object)
+    return {"message":"seccess"}
+
 # @app.put("/product/delete")
 # async def product_delete(product_id : int, 
 #     current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
@@ -136,3 +151,12 @@ async def report(start_date: Optional[date] = None, end_date : Optional[date] = 
     graph_data = reports(database, start_date, end_date, filter)
     table_data = workers_tabel(database, start_date, end_date, filter)
     return {"graph_data":graph_data, "table_data":table_data}
+
+
+@app.get("/retail/")
+async def retail(start_date: Optional[date] = None, end_date : Optional[date] = None,
+    filter: Optional[str] = Query("thismonth", description="Filter criteria: Бугун, Бу ҳафта, Бу ойда, Бу квартал"),
+    current_user = current_user_dep,database = database_dep):
+
+    context = get_sales_with_details(database, start_date, end_date, filter)
+    return context
