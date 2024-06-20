@@ -9,7 +9,7 @@ from pydantic_models import product_models, user_models, sale_models, salary_mod
 from database_models import models
 from auth import password, auth_main
 from crud import product_fetch_crud
-from util.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports, get_sales_with_details
+from my_util_functions.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports, get_sales_with_details
 from fastapi.encoders import jsonable_encoder
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)

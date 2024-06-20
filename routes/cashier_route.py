@@ -8,7 +8,7 @@ from pydantic_models import user_models, product_models, sale_models, salary_mod
 from auth import auth_main
 from database_models import models
 
-from  util.profile_util_functions import today_user_score, user_score_retrieve, user_salaries
+from  my_util_functions.profile_util_functions import today_user_score, user_score_retrieve, user_salaries
 
 app = APIRouter(
      tags=["Kassir Routerlari"]
