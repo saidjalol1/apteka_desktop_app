@@ -4,7 +4,13 @@ from sqlalchemy.orm import relationship
 from database_config.database_conf import Base, current_time
 
 
+class Category(Base):
+    __tablename__ = "category"
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
 
+    products = relationship("Product", back_populates="type")
+    
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True)
@@ -27,9 +33,13 @@ class Product(Base):
     discount_price = Column(Float)
     
     overall_amount = Column(Integer, default=0)
-    
+    type_id  = Column("Category", ForeignKey('category.id'))
     score = Column(Integer)
     sale_product = relationship("SaleItem", back_populates="sale_product_items")
+    type = relationship("Category", back_populates="products")
+
+
+
 
 
 class SaleItem(Base):

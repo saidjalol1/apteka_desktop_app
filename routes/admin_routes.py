@@ -9,7 +9,7 @@ from pydantic_models import product_models, user_models, sale_models, salary_mod
 from database_models import models
 from auth import password, auth_main
 from crud import product_fetch_crud
-from util.profile_util_functions import sale_statistics, top_10_products_statistics, workers
+from util.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports
 from fastapi.encoders import jsonable_encoder
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
@@ -118,14 +118,21 @@ async def workers(start_date: Optional[date] = None, end_date : Optional[date] =
     current_user = current_user_dep,database = database_dep):
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can view worker statistics")
-
-    results = await workers(database,start_date, end_date, filter)
+    results =  workers_tabel(database,start_date, end_date, filter)
     return {"result": results}
     
 @app.get("/statistics/")
 async def statistcs(current_user = current_user_dep,database = database_dep):
-    
     context = sale_statistics(database)
     top_10_products = top_10_products_statistics(database)
-    workers_table = workers(database)
-    return {"graph_objects": context, "top_10_products": top_10_products, "workers_table": workers_table}
+    workers_table =  workers_tabel(database)
+    return {"graph_objects": context, "top_10_products": top_10_products, "workers_table":workers_table}
+
+@app.get("/reports/")
+async def report(start_date: Optional[date] = None, end_date : Optional[date] = None,
+    filter: Optional[str] = Query("thismonth", description="Filter criteria: Бугун, Бу ҳафта, Бу ойда, Бу квартал"),
+    current_user = current_user_dep,database = database_dep):
+    
+    graph_data = reports(database, start_date, end_date, filter)
+    table_data = workers_tabel(database, start_date, end_date, filter)
+    return {"graph_data":graph_data, "table_data":table_data}

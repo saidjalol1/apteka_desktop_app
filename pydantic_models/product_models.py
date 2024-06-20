@@ -19,14 +19,22 @@ class ProductIn(BaseModel):
     sale_price : Optional[Union[float, None]] = None
     sale_price_in_percent : Optional[Union[int, None]] = None
     discount_price : Optional[Union[float, None]] = None
-   
+    type_id :  Optional[Union[int, None]] = None
     score : Optional[Union[int, None]] = None
     
     
 
     class Config:
         from_attributes = True
+
+class CategoryIn(BaseModel):
+    name : str
+
+class CategoryOut(CategoryIn):
+    id : int
     
+    class Config:
+        from_attributes = True
     
 class ProductOut(ProductIn):
     id : int

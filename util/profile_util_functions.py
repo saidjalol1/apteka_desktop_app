@@ -16,9 +16,11 @@ first_day_of_current_month = today_date.replace(day=1)
 first_day_of_last_month = (first_day_of_current_month - relativedelta(months=1)).replace(day=1)
 last_day_of_last_month = first_day_of_current_month - datetime.timedelta(days=1)
 
-print("first_day_of_last_month:", first_day_of_last_month)
-print("last_day_of_last_month:", last_day_of_last_month)
-print("first_day_of_current_month:", first_day_of_current_month)
+# Helper function to get the start date of the current quarter
+def get_current_quarter_start_date():
+    today = current_time().date().today()
+    quarter = (today.month - 1) // 3 + 1
+    return date(today.year, 3 * quarter - 2, 1)
 
 def user_score_retrieve(user_id, db, date=None):
     query = db.query(models.UserScores)\
@@ -105,7 +107,7 @@ def calculate_percent_change(current_value, previous_value):
     return percent_change
 
 
-def sale_statistics(session: Session):
+def sale_statistics(session):
     # Overall sum of sales for the current month
     overall_sum_sales_current_month = session.query(
         func.sum(models.Sale.amount)
@@ -217,9 +219,180 @@ def sale_statistics(session: Session):
 
     return context
 
-def top_10_products_statistics(session):
-   
-    # Query to get the top 10 products by quantity sold and their total sales for the current month
+
+def reports(session, start_date=None, end_date=None, filter="thismonth"):
+    today = current_time().date()
+    if start_date and end_date:
+        pass
+    elif filter == "today":
+        start_date = today
+        end_date = today
+    elif filter == "thisweek":
+        start_date = today - timedelta(days=today.weekday())
+        end_date = today
+    elif filter == "thismonth":
+        start_date = date(today.year, today.month, 1)
+        end_date = today
+    elif filter == "thisquarter":
+        start_date = get_current_quarter_start_date()
+        end_date = today
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filter criteria")
+
+    # Calculate the length of the selected period
+    period_length = (end_date - start_date).days + 1
+
+    # Define the comparison period
+    last_period_start_date = start_date - timedelta(days=period_length)
+    last_period_end_date = start_date - timedelta(days=1)
+
+    # Overall sum of sales for the selected period
+    overall_sum_sales_current_period = session.query(
+        func.sum(models.Sale.amount)
+    ).filter(and_(
+        models.Sale.date_added >= start_date,
+        models.Sale.date_added <= end_date
+    )).scalar() or 0
+
+    # Overall profit for the selected period
+    overall_profit_current_period = session.query(
+        func.sum((models.Product.sale_price - models.Product.base_price) * models.SaleItem.amount_of_box)
+    ).select_from(
+        models.Sale
+    ).join(
+        models.SaleItem, models.SaleItem.sale_id == models.Sale.id
+    ).join(
+        models.Product, models.SaleItem.product_id == models.Product.id
+    ).filter(and_(
+        models.Sale.date_added >= start_date,
+        models.Sale.date_added <= end_date
+    )).scalar() or 0
+
+    # Sum of salaries received by users in the selected period
+    overall_sum_salaries_current_period = session.query(
+        func.sum(models.UserSalaries.amount)
+    ).filter(and_(
+        models.UserSalaries.date_received >= start_date,
+        models.UserSalaries.date_received <= end_date
+    )).scalar() or 0
+
+    # Quantity of sales for the selected period
+    quantity_of_sales_current_period = session.query(
+        func.count(models.Sale.id)
+    ).filter(and_(
+        models.Sale.date_added >= start_date,
+        models.Sale.date_added <= end_date
+    )).scalar() or 0
+
+    # Sum of expenses received by users in the selected period
+    overall_sum_expenses_current_period = session.query(
+        func.sum(models.UserExpances.amount)
+    ).filter(and_(
+        models.UserExpances.date_added >= start_date,
+        models.UserExpances.date_added <= end_date
+    )).scalar() or 0
+
+    # "Naqd savdo" (cash sales) for the selected period
+    cash_sales_current_period = session.query(
+        func.sum(models.Sale.amount)
+    ).filter(and_(
+        models.Sale.date_added >= start_date,
+        models.Sale.date_added <= end_date,
+        models.Sale.payment_type == "naqd"
+    )).scalar() or 0
+
+    # "Nasiya savdo" (credit sales) for the selected period
+    credit_sales_current_period = session.query(
+        func.sum(models.Sale.amount)
+    ).filter(and_(
+        models.Sale.date_added >= start_date,
+        models.Sale.date_added <= end_date,
+        models.Sale.payment_type == "nasiya"
+    )).scalar() or 0
+
+    # Overall sum of sales for the comparison period
+    overall_sum_sales_last_period = session.query(
+        func.sum(models.Sale.amount)
+    ).filter(and_(
+        models.Sale.date_added >= last_period_start_date,
+        models.Sale.date_added <= last_period_end_date
+    )).scalar() or 0
+
+    # Overall profit for the comparison period
+    overall_profit_last_period = session.query(
+        func.sum((models.Product.sale_price - models.Product.base_price) * models.SaleItem.amount_of_box)
+    ).select_from(
+        models.Sale
+    ).join(
+        models.SaleItem, models.SaleItem.sale_id == models.Sale.id
+    ).join(
+        models.Product, models.SaleItem.product_id == models.Product.id
+    ).filter(and_(
+        models.Sale.date_added >= last_period_start_date,
+        models.Sale.date_added <= last_period_end_date
+    )).scalar() or 0
+
+    # Quantity of sales for the comparison period
+    quantity_of_sales_last_period = session.query(
+        func.count(models.Sale.id)
+    ).filter(and_(
+        models.Sale.date_added >= last_period_start_date,
+        models.Sale.date_added <= last_period_end_date
+    )).scalar() or 0
+
+    # Sum of salaries received by users in the comparison period
+    overall_sum_salaries_last_period = session.query(
+        func.sum(models.UserSalaries.amount)
+    ).filter(and_(
+        models.UserSalaries.date_received >= last_period_start_date,
+        models.UserSalaries.date_received <= last_period_end_date
+    )).scalar() or 0
+
+    # Calculate percentage changes
+    sales_percent_change = calculate_percent_change(overall_sum_sales_current_period, overall_sum_sales_last_period)
+    profit_percent_change = calculate_percent_change(overall_profit_current_period, overall_profit_last_period)
+    salary_change_percent = calculate_percent_change(overall_sum_salaries_current_period, overall_sum_salaries_last_period)
+    quantity_sales_percent_change = calculate_percent_change(quantity_of_sales_current_period, quantity_of_sales_last_period)
+
+    context = {
+        "overall_sum_of_sale": overall_sum_sales_current_period,
+        "overall_sum_of_profit": overall_profit_current_period,
+        "quantity_of_sales_current_month": quantity_of_sales_current_period,
+        "overall_sum_salaries_current_month": overall_sum_salaries_current_period,
+        "overall_sum_expense_current_month": overall_sum_expenses_current_period,
+        "naqd_savdo": cash_sales_current_period,
+        "nasiya_savdo": credit_sales_current_period,
+        "salary_change_percent": salary_change_percent,
+        "sales_percent_change": sales_percent_change,
+        "profit_percent_change": profit_percent_change,
+        "quantity_sales_percent_change": quantity_sales_percent_change
+    }
+
+    return context
+
+
+
+
+def top_10_products_statistics(session, start_date=None, end_date=None, filter="thismonth"):
+    today = current_time().date()
+    if start_date and end_date:
+        pass
+    elif filter == "today":
+        start_date = today
+        end_date = today
+    elif filter == "thisweek":
+        start_date = today - timedelta(days=today.weekday())
+        end_date = today
+    elif filter == "thismonth":
+        start_date = date(today.year, today.month, 1)
+        end_date = today
+    elif filter == "thisquarter":
+        start_date = get_current_quarter_start_date()
+        end_date = today
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filter criteria")
+
+    # Query to get the top 10 products by quantity sold and their total sales for the selected period
     top_10_products = session.query(
         models.Product.name,
         func.sum(models.SaleItem.amount_of_box).label('quantity_sold'),
@@ -229,8 +402,8 @@ def top_10_products_statistics(session):
     ).join(
         models.Sale, models.Sale.id == models.SaleItem.sale_id
     ).filter(
-        extract('year', models.Sale.date_added) == today_date.year,
-        extract('month', models.Sale.date_added) == today_date.month
+        models.Sale.date_added >= start_date,
+        models.Sale.date_added <= end_date
     ).group_by(
         models.Product.id, models.Product.name
     ).order_by(
@@ -247,22 +420,17 @@ def top_10_products_statistics(session):
             product_dict = {
                 'product_name': product.name,
                 'quantity_sold': product.quantity_sold,
-                'total_sales': product.total_sales, 
+                'total_sales': product.total_sales,
             }
             product_statistics.append(product_dict)
         else:
             pass
-        
 
     return product_statistics
 
-# Helper function to get the start date of the current quarter
-def get_current_quarter_start_date():
-    today = current_time().date().today()
-    quarter = (today.month - 1) // 3 + 1
-    return date(today.year, 3 * quarter - 2, 1)
 
-def workers(database,start_date=None, end_date=None, filter = "thismonth"):
+
+def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth"):
 
     today = current_time().date()
     if start_date and end_date:
@@ -355,6 +523,5 @@ def workers(database,start_date=None, end_date=None, filter = "thismonth"):
             "user_bonus":user_bonus
         })
         
-    return {
-        "Ишчилар статистикаси": table
-    }
+    return table
+
