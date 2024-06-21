@@ -31,7 +31,6 @@ class Product(Base):
     sale_price = Column(Float)
     sale_price_in_percent = Column(Float)
     discount_price = Column(Float)
-    person = Column(String)
     overall_amount = Column(Integer, default=0)
     type_id  = Column("Category", ForeignKey('category.id'))
     score = Column(Integer)
@@ -50,7 +49,6 @@ class SaleItem(Base):
     amount_of_package = Column(Integer)
     amount_from_package = Column(Integer)
     total_sum = Column(Float)
-    
     product_id = Column("Product", ForeignKey('products.id'))
     sale_id = Column("Sale", ForeignKey('sale.id'))
     
@@ -65,6 +63,8 @@ class Sale(Base):
     amount = Column(Integer)
     date_added = Column(DateTime, default=current_time)
     status = Column(String)
+    person = Column(String)
+    discount = Column(Float)
     payment_type = Column(String)
     owner_id = Column("User", ForeignKey('users.id'))
     
