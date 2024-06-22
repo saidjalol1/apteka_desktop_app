@@ -38,9 +38,6 @@ class Product(Base):
     type = relationship("Category", back_populates="products")
 
 
-
-
-
 class SaleItem(Base):
     __tablename__ = "sale_items"
     
@@ -56,6 +53,7 @@ class SaleItem(Base):
     sale = relationship("Sale", back_populates="items")
     user_scores = relationship("UserScores", back_populates="item")
 
+
 class Sale(Base):
     __tablename__ = "sale"
     
@@ -65,12 +63,13 @@ class Sale(Base):
     status = Column(String)
     person = Column(String)
     discount = Column(Float)
-    payment_type = Column(String)
+    cash = Column(Float)
+    debt = Column(Float)
+    card = Column(Float)
     owner_id = Column("User", ForeignKey('users.id'))
     
     sale_owner = relationship("User", back_populates="sales")
     items = relationship("SaleItem", back_populates="sale")
-
 
 
 # User models 

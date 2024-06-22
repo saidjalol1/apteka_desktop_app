@@ -93,7 +93,10 @@ async def sell(
         check = database.query(models.Sale).filter(models.Sale.id == check_object.check_id).filter(models.Sale.owner_id == current_user.id).first()
         check.status = "sotilgan"
         check.amount = check_object.total
-        check.payment_type = check_object.payment_type
+        check.discount = check_object.discount
+        check.cash = check_object.cash
+        check.debt = check_object.debt
+        check.card = check_object.card
     
         database.commit()
         database.refresh(check)
