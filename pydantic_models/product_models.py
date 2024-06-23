@@ -37,7 +37,7 @@ class CategoryOut(CategoryIn):
     
 class ProductOut(ProductIn):
     id : int
-    overall_amount : Optional[int] = None
+    overall_amount : Optional[float] = None
     class Config:
         from_attributes = True
         
