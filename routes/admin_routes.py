@@ -137,9 +137,8 @@ async def create_check_layout(
     phone: str = Form(...),
     address: str = Form(...),
     shift_id: int = Form(...),
-    logo: UploadFile = File(...)
-):
-    db: Session = Depends(get_db)
+    logo: UploadFile = File(...),
+    database = database_dep):
     try:
         logo_path = None
         if logo:
@@ -155,9 +154,9 @@ async def create_check_layout(
             address=address,
             shift_id=shift_id
         )
-        db.add(db_check_layout)
-        db.commit()
-        db.refresh(db_check_layout)
+        database.add(db_check_layout)
+        database.commit()
+        database.refresh(db_check_layout)
 
         return {"message": "success"}
 
