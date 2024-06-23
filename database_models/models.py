@@ -11,6 +11,7 @@ class Category(Base):
 
     products = relationship("Product", back_populates="type")
     
+    
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True)
@@ -24,7 +25,7 @@ class Product(Base):
     amount_in_package = Column(Integer)
     
     produced_location = Column(String)
-    expiry_date = Column(Date)
+    expiry_date = Column(String)
     
     base_price = Column(Float)
     extra_price_in_percent = Column(Integer)

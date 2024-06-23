@@ -12,7 +12,7 @@ class ProductIn(BaseModel):
     amount_in_package : Optional[Union[int, None]] = None
    
     produced_location : Optional[Union[str, None]] = None
-    expiry_date : Optional[Union[date, None]] = None
+    expiry_date : Optional[Union[str, None]] = None
     base_price : Optional[Union[float, None]] = None
     extra_price_in_percent : Optional[Union[int, None]] = None
     sale_price : Optional[Union[float, None]] = None
