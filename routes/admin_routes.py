@@ -142,6 +142,7 @@ async def create_check_layout(check_layout_create: sale_models.CheckLayout, db: 
         db_check_layout = models.CheckLayout(
             name=check_layout_create.name,
             logo=logo_path,
+            image = logo_path,
             phone=check_layout_create.phone,
             address=check_layout_create.address,
             shift_id=check_layout_create.shift_id
@@ -150,7 +151,7 @@ async def create_check_layout(check_layout_create: sale_models.CheckLayout, db: 
         db.commit()
         db.refresh(db_check_layout)
 
-        return db_check_layout
+        return {"message":"success"}
 
     except Exception as e:
         db.rollback()
