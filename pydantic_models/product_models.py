@@ -20,7 +20,7 @@ class ProductIn(BaseModel):
     discount_price : Optional[Union[float, None]] = None
     type_id :  Optional[Union[int, None]] = None
     score : Optional[Union[int, None]] = None
-    
+    overall_price : Optional[Union[float, None]] = None
     
 
     class Config:

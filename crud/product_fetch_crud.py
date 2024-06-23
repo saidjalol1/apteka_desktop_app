@@ -14,9 +14,12 @@ def get_products(db: Session, skip: int = 0, limit: int = 10):
 #Prduct Creation
 def create(db: Session, product:ProductIn):
     db_product = Product(**product.model_dump())
-    db_product.overall_amount = db_product.amount_in_box * db_product.amount_in_package * db_product.box
+    if db_product.box and db_product.amount_in_box and db_product.amount_in_package:
+        db_product.overall_amount = db_product.amount_in_box * db_product.amount_in_package * db_product.box
+    else:
+        return {"error":"Unprocessable entity"}
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
-    return db_product
+    return {"success":"success"}
     

@@ -36,7 +36,7 @@ class Product(Base):
     score = Column(Integer)
     sale_product = relationship("SaleItem", back_populates="sale_product_items")
     type = relationship("Category", back_populates="products")
-
+    overall_price = Column(Float)
 
 class SaleItem(Base):
     __tablename__ = "sale_items"
