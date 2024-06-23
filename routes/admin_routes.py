@@ -63,7 +63,7 @@ async def create_product(product: product_models.ProductIn,current_user = curren
         product = product_fetch_crud.create(database,product)
     else:
         return {"error":"only admin can access this route"}
-    return product
+    return {"message":"success"}
 
 
 @app.put("/product/edit")
