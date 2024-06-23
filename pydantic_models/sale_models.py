@@ -54,3 +54,8 @@ class CheckLayout(BaseModel):
     address : str
     image : str
     shift_id : int
+    
+
+class DiscountCardIn:
+    number : Optional[Union[int, None]] = None
+    amount : Optional[Union[int, None]] = None

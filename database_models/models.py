@@ -158,3 +158,12 @@ class UserExpances(Base):
     expance_owner_id = Column(Integer, ForeignKey('users.id'))
     expance_owner = relationship("User", back_populates="expances")
     
+    
+class DiscountCard(Base):
+    __tablename__ = "discount_cards"
+    
+    id = Column(Integer, primary_key=True)
+    number = Column(String)
+    amount = Column(Float)
+    
+    

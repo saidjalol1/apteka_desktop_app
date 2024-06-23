@@ -91,12 +91,23 @@ async def sell(
         current_user = current_user_dep,database = database_dep):
     try:
         check = database.query(models.Sale).filter(models.Sale.id == check_object.check_id).filter(models.Sale.owner_id == current_user.id).first()
-        check.status = "sotilgan"
+        check.status = "sotilgan"   
         check.amount = check_object.total
         check.discount = check_object.discount
-        check.cash = check_object.cash
-        check.debt = check_object.debt
-        check.card = check_object.card
+        if check_object.cash:
+            check.cash = check_object.cash
+        else:
+            check.cash = 0.0
+            
+        if check_object.debt:
+            check.debt = check_object.debt
+        else:
+            check.debt = 0.0
+        
+        if check_object.card:
+            check.card = check_object.card
+        else:
+            check.card = 0.0
     
         database.commit()
         database.refresh(check)
@@ -104,6 +115,13 @@ async def sell(
     except Exception as e:
             return {"error":"Bu check boshqa sotuvchiga tegishli"}
 
+@app.post("/cheque/")
+async def cheque():
+    message = {
+        "message": "check_chiqarildi"
+    }
+    print(message)
+    return message
 
 @app.post("/return")
 async def return_endpoint(
@@ -139,9 +157,9 @@ async def return_endpoint(
 #     except Exception as e:
 #         return {"error": e}
 
-# user_token : user_models.UserLogin
+# 
 @app.post("/token/")
-async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
+async def login(user_token : user_models.UserLogin,database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)
