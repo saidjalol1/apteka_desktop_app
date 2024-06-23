@@ -131,7 +131,7 @@ async def retail(start_date: Optional[date] = None, end_date : Optional[date] = 
     return context
 
 
-@app.post("/admin/check-layout/")
+@app.post("/check-layout/")
 async def create_check_layout(
     name: str = Form(...),
     phone: str = Form(...),
