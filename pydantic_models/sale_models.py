@@ -8,6 +8,7 @@ class Sell(BaseModel):
     cash : Optional[Union[float, None]] = None
     card : Optional[Union[float, None]] = None
     debt : Optional[Union[float, None]] = None
+    payment_type: Optional[Union[str, None]] = None
     discount : Optional[Union[float, None]] = None
     total: float
     

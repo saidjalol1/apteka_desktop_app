@@ -66,6 +66,7 @@ class Sale(Base):
     cash = Column(Float)
     debt = Column(Float)
     card = Column(Float)
+    payment_type = Column(String)
     owner_id = Column("User", ForeignKey('users.id'))
     
     sale_owner = relationship("User", back_populates="sales")
