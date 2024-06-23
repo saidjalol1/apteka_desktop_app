@@ -595,17 +595,13 @@ def get_sales_with_details(session: Session, start_date=None, end_date=None, fil
 
 
 def save_logo(logo_data: bytes, filename: str) -> str:
-    # Define the directory where you want to save the logos
-    upload_folder = os.path.join(os.getcwd(), "images")  # Assuming "images" folder in root
+    upload_folder = os.path.join(os.getcwd(), "images")
 
-    # Create the directory if it doesn't exist
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
 
-    # Construct the full path where the logo will be saved
     logo_path = os.path.join(upload_folder, filename)
 
-    # Save the logo to the specified path
     with open(logo_path, "wb") as f:
         f.write(logo_data)
 

@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from typing import Annotated, Optional, List
-from fastapi import APIRouter, Body, HTTPException, status,Depends, Query   
+from fastapi import APIRouter, Body, HTTPException, status,Depends, Query, File, Form, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date, and_, extract
 from database_config.database_conf import get_db, current_time
@@ -131,27 +131,35 @@ async def retail(start_date: Optional[date] = None, end_date : Optional[date] = 
     return context
 
 
-@app.post("/check-layout/")
-async def create_check_layout(check_layout_create: sale_models.CheckLayout, db: Session = Depends(get_db)):
+@app.post("/admin/check-layout/")
+async def create_check_layout(
+    name: str = Form(...),
+    phone: str = Form(...),
+    address: str = Form(...),
+    shift_id: int = Form(...),
+    logo: UploadFile = File(...)
+):
+    db: Session = Depends(get_db)
     try:
         logo_path = None
-        if check_layout_create.logo:
-            logo_filename = check_layout_create.logo.filename
-            logo_path = save_logo(check_layout_create.logo.file.read(), logo_filename)
+        if logo:
+            logo_filename = logo.filename
+            logo_data = await logo.read()
+            logo_path = save_logo(logo_data, logo_filename)
 
         db_check_layout = models.CheckLayout(
-            name=check_layout_create.name,
+            name=name,
             logo=logo_path,
-            image = logo_path,
-            phone=check_layout_create.phone,
-            address=check_layout_create.address,
-            shift_id=check_layout_create.shift_id
+            image=logo_path,  # Assuming image and logo are the same in your model
+            phone=phone,
+            address=address,
+            shift_id=shift_id
         )
         db.add(db_check_layout)
         db.commit()
         db.refresh(db_check_layout)
 
-        return {"message":"success"}
+        return {"message": "success"}
 
     except Exception as e:
         db.rollback()
