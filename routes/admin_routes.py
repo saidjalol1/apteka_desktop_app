@@ -162,7 +162,7 @@ async def create_check_layout(
         return {"message": "success"}
 
     except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        print(e)
+        return {"message":"error"}
     
 
