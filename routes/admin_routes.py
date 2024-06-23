@@ -57,7 +57,7 @@ async def salary_give(salary :salary_models.SalaryInModel,current_user = current
         return {"error":"only admin can access this route"}
 
 # Product Routes
-@app.post("/product/create", response_model=product_models.ProductOut)
+@app.post("/product/create")
 async def create_product(product: product_models.ProductIn,current_user = current_user_dep,database = database_dep):
     if current_user.is_admin:
         product = product_fetch_crud.create(database,product)
