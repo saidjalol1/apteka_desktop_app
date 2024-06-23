@@ -149,7 +149,7 @@ async def report(start_date: Optional[date] = None, end_date : Optional[date] = 
     current_user = current_user_dep,database = database_dep):
     
     graph_data = reports(database, start_date, end_date, filter)
-    table_data = workers_tabel(database, start_date, end_date, filter)
+    table_data = top_10_products_statistics(database, start_date, end_date, filter)
     return {"graph_data":graph_data, "table_data":table_data}
 
 
