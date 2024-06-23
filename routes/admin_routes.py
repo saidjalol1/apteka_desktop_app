@@ -9,7 +9,7 @@ from pydantic_models import product_models, user_models, sale_models, salary_mod
 from database_models import models
 from auth import password, auth_main
 from crud import product_fetch_crud
-from my_util_functions.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports, get_sales_with_details
+from my_util_functions.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports, get_sales_with_details, save_logo
 from fastapi.encoders import jsonable_encoder
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
@@ -66,22 +66,6 @@ async def create_product(product: product_models.ProductIn,current_user = curren
     return {"message":"success"}
 
 
-@app.put("/product/edit")
-async def product_edit(product_id : int,product_update: product_models.ProductIn,current_user = current_user_dep,database = database_dep):
-    if current_user.is_admin:
-        product = database.query(models.Product).filter(models.Product.id == product_id).first()
-        if not product:
-            return {"error":"Mahsulot topilmadi"}
-
-        for key, value in product_update.model_dump(exclude_unset=True).items():
-            setattr(product, key, value)
-
-        database.commit()
-        database.refresh(product)
-        return product
-    else:
-        return {"error":"only admin can access this route"}
-
 @app.post("/shift/add")
 async def create_shift(shift:user_models.ShiftIn,current_user = current_user_dep,database = database_dep):
     shift_object = models.UserShift(**shift.model_dump())
@@ -111,21 +95,6 @@ async def create_shift(shift:product_models.CategoryIn,current_user = current_us
     database.refresh(categiry_object)
     return {"message":"seccess"}
 
-# @app.put("/product/delete")
-# async def product_delete(product_id : int, 
-#     current_user: pydantic_models.models.User = Depends(auth_main.get_current_user),db: Session = Depends(get_db)):
-#     if current_user.is_admin:
-#         product = db.query(models.Product).filter(models.Product.id == product_id).first()
-#         if not product:
-#             raise HTTPException(status_code=404, detail="Product not found")
-        
-#         db.delete(product)
-#         db.commit()
-#         return product
-#     else:
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only admin can delete product")
-
-
 
 @app.get("/workers/")
 async def workers(start_date: Optional[date] = None, end_date : Optional[date] = None,
@@ -136,6 +105,7 @@ async def workers(start_date: Optional[date] = None, end_date : Optional[date] =
     results =  workers_tabel(database,start_date, end_date, filter)
     return {"result": results}
     
+    
 @app.get("/statistics/")
 async def statistcs(current_user = current_user_dep,database = database_dep):
     context = sale_statistics(database)
@@ -143,11 +113,11 @@ async def statistcs(current_user = current_user_dep,database = database_dep):
     workers_table =  workers_tabel(database)
     return {"graph_objects": context, "top_10_products": top_10_products, "workers_table":workers_table}
 
+
 @app.get("/reports/")
 async def report(start_date: Optional[date] = None, end_date : Optional[date] = None,
     filter: Optional[str] = Query("thismonth", description="Filter criteria: Бугун, Бу ҳафта, Бу ойда, Бу квартал"),
     current_user = current_user_dep,database = database_dep):
-    
     graph_data = reports(database, start_date, end_date, filter)
     table_data = top_10_products_statistics(database, start_date, end_date, filter)
     return {"graph_data":graph_data, "table_data":table_data}
@@ -157,6 +127,33 @@ async def report(start_date: Optional[date] = None, end_date : Optional[date] = 
 async def retail(start_date: Optional[date] = None, end_date : Optional[date] = None,
     filter: Optional[str] = Query("thismonth", description="Filter criteria: Бугун, Бу ҳафта, Бу ойда, Бу квартал"),
     current_user = current_user_dep,database = database_dep):
-
     context = get_sales_with_details(database, start_date, end_date, filter)
     return context
+
+
+@app.post("/check-layout/")
+async def create_check_layout(check_layout_create: sale_models.CheckLayout, db: Session = Depends(get_db)):
+    try:
+        logo_path = None
+        if check_layout_create.logo:
+            logo_filename = check_layout_create.logo.filename
+            logo_path = save_logo(check_layout_create.logo.file.read(), logo_filename)
+
+        db_check_layout = models.CheckLayout(
+            name=check_layout_create.name,
+            logo=logo_path,
+            phone=check_layout_create.phone,
+            address=check_layout_create.address,
+            shift_id=check_layout_create.shift_id
+        )
+        db.add(db_check_layout)
+        db.commit()
+        db.refresh(db_check_layout)
+
+        return db_check_layout
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    
+

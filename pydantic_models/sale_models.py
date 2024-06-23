@@ -10,6 +10,7 @@ class Sell(BaseModel):
     debt : Optional[Union[float, None]] = None
     payment_type: Optional[Union[str, None]] = None
     discount : Optional[Union[float, None]] = None
+    person : Optional[Union[str, None]] = None
     total: float
     
 
@@ -50,7 +51,7 @@ class Return(BaseModel):
 
 class CheckLayout(BaseModel):
     name : str
-    logo : str
+    logo : Optional[bytes]
     phone : str
     address : str
     image : str

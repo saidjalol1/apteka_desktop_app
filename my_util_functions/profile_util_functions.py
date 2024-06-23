@@ -1,3 +1,4 @@
+import os
 import datetime
 from datetime import date, timedelta
 from fastapi import HTTPException, status
@@ -525,8 +526,10 @@ def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth")
         
     return table
 
+
 def get_sales_with_details(session: Session, start_date=None, end_date=None, filter="thismonth"):
-    today = current_time().date()
+    today = date.today()
+
     if start_date and end_date:
         pass
     elif filter == "today":
@@ -539,7 +542,7 @@ def get_sales_with_details(session: Session, start_date=None, end_date=None, fil
         start_date = date(today.year, today.month, 1)
         end_date = today
     elif filter == "thisquarter":
-        start_date = get_current_quarter_start_date()
+        start_date = get_current_quarter_start_date()  # Implement this function according to your needs
         end_date = today
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filter criteria")
@@ -550,9 +553,13 @@ def get_sales_with_details(session: Session, start_date=None, end_date=None, fil
         models.Sale.amount,
         models.Sale.date_added,
         models.Sale.status,
+        models.Sale.person,
         models.Sale.payment_type,
-        models.User.username.label('owner_name'),
-        models.UserShift.name.label('shift_name')
+        models.UserShift.name.label('shift_name'),
+        models.User.username.label('owner_username'),  # Alias to differentiate from 'owner_name'
+        models.User.first_name.label('owner_first_name'),  # Additional user details
+        models.User.last_name.label('owner_last_name'),  # Additional user details
+        models.User.is_admin.label('user_type'),  # Additional user details
     ).join(
         models.User, models.User.id == models.Sale.owner_id
     ).join(
@@ -560,12 +567,8 @@ def get_sales_with_details(session: Session, start_date=None, end_date=None, fil
     ).filter(
         and_(
             models.Sale.status == "sotilgan",
-            extract('year', models.Sale.date_added) >= start_date.year,
-            extract('month', models.Sale.date_added) >= start_date.month,
-            extract('day', models.Sale.date_added) >= start_date.day,
-            extract('year', models.Sale.date_added) <= end_date.year,
-            extract('month', models.Sale.date_added) <= end_date.month,
-            extract('day', models.Sale.date_added) <= end_date.day
+            models.Sale.date_added >= start_date,
+            models.Sale.date_added <= end_date
         )
     ).order_by(
         models.Sale.date_added.desc()  # Order by date added descending
@@ -577,12 +580,34 @@ def get_sales_with_details(session: Session, start_date=None, end_date=None, fil
         sale_dict = {
             'sale_id': sale.id,
             'amount': sale.amount,
-            'date_added': sale.date_added,
+            'date_added': sale.date_added.date(),
+            'person': sale.person,
             'status': sale.status,
             'payment_type': sale.payment_type,
-            'owner_name': sale.owner_name,
+            'owner_username': sale.owner_username,
+            'owner_first_name': sale.owner_first_name,
+            'owner_last_name': sale.owner_last_name,
+            'user_type': "Admin" if sale.user_type == True else "Kassir",
             'shift_name': sale.shift_name
         }
         sales_statistics.append(sale_dict)
 
     return sales_statistics
+
+
+def save_logo(logo_data: bytes, filename: str) -> str:
+    # Define the directory where you want to save the logos
+    upload_folder = os.path.join(os.getcwd(), "images")  # Assuming "images" folder in root
+
+    # Create the directory if it doesn't exist
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    # Construct the full path where the logo will be saved
+    logo_path = os.path.join(upload_folder, filename)
+
+    # Save the logo to the specified path
+    with open(logo_path, "wb") as f:
+        f.write(logo_data)
+
+    return logo_path
