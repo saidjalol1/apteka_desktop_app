@@ -94,21 +94,8 @@ async def sell(
         check.status = "sotilgan"   
         check.amount = check_object.total
         check.discount = check_object.discount
-        if check_object.cash:
-            check.cash = check_object.cash
-        else:
-            check.cash = 0.0
-            
-        if check_object.debt:
-            check.debt = check_object.debt
-        else:
-            check.debt = 0.0
-        
-        if check_object.card:
-            check.card = check_object.card
-        else:
-            check.card = 0.0
-    
+        check.person = check_object.person
+        check.payment_type = check_object.payment_type
         database.commit()
         database.refresh(check)
         return {"message": "success"}
@@ -173,7 +160,7 @@ async def return_endpoint(
 
 # 
 @app.post("/token/")
-async def login(user_token : user_models.UserLogin,database = database_dep):
+async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)

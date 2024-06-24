@@ -19,7 +19,7 @@ current_user_dep : user_models.User = Depends(auth_main.get_current_user)
 
 
 @app.get("/profile/", name="profil")
-async def cashier(date: date = Query(None),current_user = current_user_dep,database = database_dep):
+async def cashier(date: date = Query(None),this_month: date = Query(None),current_user = current_user_dep,database = database_dep):
     # If date is not given
     user_salary = user_salaries(current_user.id,database)
     user_scores = user_score_retrieve(current_user.id, database)
@@ -27,25 +27,35 @@ async def cashier(date: date = Query(None),current_user = current_user_dep,datab
     if date:
         user_salary = user_salaries(current_user.id,database, date)
         user_scores = user_score_retrieve(current_user.id, database, date)
+    if this_month:
+        user_salary = user_salaries(current_user.id,database,  this_month)
+        user_scores = user_score_retrieve(current_user.id, database,  this_month)
+        
     today_user_retrieve = today_user_score(current_user.id, database)
     today_score = sum([i.score for i in today_user_retrieve])
     
-    user = database.query(models.User).join(models.UserShift).filter(models.User.id == current_user.id).first()
-    user  = {
-                "id": user.id,
-                "username": user.username,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "type" : "Kassir" if user.is_admin == False else "Admin",
-                "born_date" : user.born_date,
-                "phone": user.phone_number,
-                "address" : user.address,
-                "shift": {
-                    "id": user.shift.id,
-                    "name": user.shift.name
+    user = database.query(models.User).filter(models.User.id == current_user.id).first()
+    user_shift = database.query(models.UserShift).filter(models.UserShift.id == user.shift_id).first()
+    print(current_user)
+    print(user)
+    if user:
+        user  = {
+                    "id": user.id,
+                    "username": user.username,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "type" : "Kassir" if user.is_admin == False else "Admin",
+                    "born_date" : user.born_date,
+                    "phone": user.phone_number,
+                    "address" : user.address,
+                    "shift": {
+                        "id": user_shift.id if user_shift else 0,
+                        "name": user_shift.name if user_shift else 'smenasi yo\'q'
+                    }
                 }
-            }
-    print(today_user_retrieve)
+        print(today_user_retrieve)
+    else:
+        return {"messsage":"User not found"}
     profile_data = {"user": user,"user_salaries": user_salary, "user_scores":user_scores, "score_today":today_score}
     return profile_data
 

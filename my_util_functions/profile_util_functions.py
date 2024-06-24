@@ -23,7 +23,7 @@ def get_current_quarter_start_date():
     quarter = (today.month - 1) // 3 + 1
     return date(today.year, 3 * quarter - 2, 1)
 
-def user_score_retrieve(user_id, db, date=None):
+def user_score_retrieve(user_id: int, db, date=None, this_month= None):
     query = db.query(models.UserScores)\
               .options(joinedload(models.UserScores.item))\
               .filter(models.UserScores.owner_id == user_id)
@@ -34,39 +34,50 @@ def user_score_retrieve(user_id, db, date=None):
             extract('month', models.UserScores.date_scored) == date.month,
             extract('day', models.UserScores.date_scored) == date.day
         )
+    elif this_month:
+        query = query.filter(
+            extract('year', models.UserScores.date_scored) == this_month.year,
+            extract('month', models.UserScores.date_scored) == this_month.month,
+        )
     
     scores = query.all()
     
-    serialize = []
+    if not scores:
+        return {"message": "There is no score for this user"}
+    
+    serialized_scores = []
     for score in scores:
         item = score.item
-        if item.sale_product_items:
-            serialize.append(user_models.UserScoreOut(
-                score=score.score,
-                date_scored=score.date_scored,
-                item=sale_models.SaleItemOut(
-                    id=item.id,
-                    amount_of_box=item.amount_of_box,
-                    amount_of_package=item.amount_of_package,
-                    amount_from_package=item.amount_from_package,
-                    total_sum=item.total_sum,
-                    product_id=item.product_id,
-                    sale_id=item.sale_id,
-                    sale_product_items=sale_models.ProductOut(
-                        id=item.sale_product_items.id,
-                        serial_number=item.sale_product_items.serial_number,
-                        name=item.sale_product_items.name,
-                        sale_price=item.sale_product_items.sale_price,
-                        box=item.sale_product_items.box,
-                        amount_in_box=item.sale_product_items.amount_in_box,
-                        amount_in_package=item.sale_product_items.amount_in_package,
-                        produced_location=item.sale_product_items.produced_location,
-                        expiry_date=item.sale_product_items.expiry_date,
-                        score=item.sale_product_items.score
-                    )
-                )
-            ))
-    return serialize
+        if item and item.sale_product_items:
+            product = item.sale_product_items
+            score_dict = {
+                'score': score.score,
+                'date_scored': score.date_scored.date(),
+                'item': {
+                    'id': item.id,
+                    'amount_of_box': item.amount_of_box,
+                    'amount_of_package': item.amount_of_package,
+                    'amount_from_package': item.amount_from_package,
+                    'total_sum': item.total_sum,
+                    'product_id': item.product_id,
+                    'sale_id': item.sale_id,
+                    'sale_product_items': {
+                        'id': product.id,
+                        'serial_number': product.serial_number,
+                        'name': product.name,
+                        'sale_price': product.sale_price,
+                        'box': product.box,
+                        'amount_in_box': product.amount_in_box,
+                        'amount_in_package': product.amount_in_package,
+                        'produced_location': product.produced_location,
+                        'expiry_date': product.expiry_date,
+                        'score': product.score
+                    }
+                }
+            }
+            serialized_scores.append(score_dict)
+    
+    return serialized_scores
 
 
 def today_user_score(user_id, db):
@@ -80,17 +91,38 @@ def today_user_score(user_id, db):
                                 )).all()
     return scores
 
-def user_salaries(user_id, db, date=None):
+def user_salaries(user_id, db, date=None, this_month=None):
     if date:
         user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).filter(and_(\
                                     extract('year', models.Sale.date_added) == date.year,
                                     extract('month', models.Sale.date_added) == date.month,
                                     extract('day', models.Sale.date_added) == date.day
                                 )).all()
-        return user_salaries
+    elif this_month:
+        user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).filter(and_(\
+                                    extract('year', models.Sale.date_added) == this_month.year,
+                                    extract('month', models.Sale.date_added) == this_month.month,
+                                )).all()
     else:
         user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).all()
-        return user_salaries
+        
+    salaries_list = []
+    for salary in user_salaries:
+        salary_dict = {
+            'salary_id': salary.id,
+            'amount': salary.amount,
+            'type': salary.type,
+            'date_received': salary.date_received.date(),
+            'giver_username': salary.giver.username if salary.giver else None,
+            'giver_first_name': salary.giver.first_name if salary.giver else None,
+            'giver_last_name': salary.giver.last_name if salary.giver else None,
+            'receiver_username': salary.receiver.username if salary.receiver else None,
+            'receiver_first_name': salary.receiver.first_name if salary.receiver else None,
+            'receiver_last_name': salary.receiver.last_name if salary.receiver else None,
+        }
+        salaries_list.append(salary_dict)
+    
+    return salaries_list
 
 
 def calculate_percent_change(current_value, previous_value):

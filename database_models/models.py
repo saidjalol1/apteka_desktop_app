@@ -64,9 +64,6 @@ class Sale(Base):
     status = Column(String)
     person = Column(String)
     discount = Column(Float)
-    cash = Column(Float)
-    debt = Column(Float)
-    card = Column(Float)
     payment_type = Column(String)
     owner_id = Column("User", ForeignKey('users.id'))
     
