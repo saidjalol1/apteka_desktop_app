@@ -22,16 +22,15 @@ app = APIRouter(
 
 @app.post("/create_user/", status_code=status.HTTP_201_CREATED)
 async def create_user(userin : user_models.CreateUser,current_user = current_user_dep,database = database_dep):
-    if current_user.is_admin:
+    try:
         user = models.User(**userin.model_dump())
         user.hashed_password = password.pwd_context.hash(userin.hashed_password)
         database.add(user)
         database.commit()
         database.refresh(user)
-    else:
-        print(current_user)
-        return {"error":"only admin can access this route"}
-    return {"message": "success"}
+        return {"message": "success"}
+    except:
+        return {"message":"There is a user with this username"}
     
 
 @app.post("/create_admin/", status_code=status.HTTP_201_CREATED, name="create admin")
