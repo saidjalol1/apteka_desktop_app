@@ -59,7 +59,7 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
         if sale_item_in.amount_of_box:
             box = product.amount_in_box *  product.amount_in_package * sale_item_in.amount_of_box 
         if sale_item_in.amount_of_package:
-            package = product.amount_in_box * sale_item_in.amount_of_package
+            package = product.amount_in_package * sale_item_in.amount_of_package
         if sale_item_in.amount_from_package:
             from_package = sale_item_in.amount_from_package
         overall_for_sale = sum([box, package,from_package])
@@ -68,6 +68,9 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
             product.box = product.overall_amount // (product.amount_in_box * product.amount_in_package)
         else:
             return {"error":"Omborda Mahsulot Yetarli emas"}
+        print(box)
+        print(package)
+        print(from_package)
     else:
         return {"error": "Mahsulot topilmadi"}
                             
@@ -75,8 +78,9 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
     database.commit()
     database.refresh(sale_item)
     
-    base_of_score = sum([box, package,from_package])
-    score = product.score // base_of_score
+    drug_count = sum([box, package,from_package])
+    base_score = product.score / (product.amount_in_box * product.amount_in_package)
+    score = drug_count * base_score
     
     
     user_score = models.UserScores(
@@ -84,7 +88,7 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
         owner_id = current_user.id,
         sale_item_id = sale_item.id
     )
-    print(user_score)
+    print(user_score.score)
     database.add(user_score)
     database.commit()
     database.refresh(user_score)
@@ -97,16 +101,19 @@ async def sale(sale_item_id : int,current_user = current_user_dep,database = dat
     item = database.query(models.SaleItem).filter(models.SaleItem.id == sale_item_id).first()
     product = database.query(models.Product).filter(models.Product.id == item.product_id).first()
     if product:
-        product.amount_in_box += item.amount_of_box
-        
-    user_scores = item.user_scores
-    for user_score in user_scores:
-        database.delete(user_score)
-    if item:
+        if item.amount_of_box:
+            box = product.amount_in_box *  product.amount_in_package * item.amount_of_box 
+        if item.amount_of_package:
+            package = product.amount_in_package * item.amount_of_package
+        if item.amount_from_package:
+            from_package = item.amount_from_package
+        product.overall_amount += sum([box, package,from_package])
+        print([box, package,from_package])
+        product.box += item.amount_of_box
         database.delete(item)
+        database.commit()
     else:
-        return {"message":"Mahsulot topilmadi"}
-    database.commit()
+        return {"error":"Omborda Mahsulot yoki check item topilmadi Yetarli emas"}
     return {"message": "success"}
 
 

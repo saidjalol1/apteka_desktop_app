@@ -130,6 +130,20 @@ async def return_endpoint(
         db: Session = Depends(get_db)):
     try:
         product = db.query(models.Product).filter(models.Product.id == return_object.product_id).first()
+        if product:
+            if return_object.amount_of_box:
+                product.box += return_object.amount_of_box
+                box = product.amount_in_box *  product.amount_in_package * return_object.amount_of_box 
+            if return_object.amount_of_package:
+                package = product.amount_in_package * return_object.amount_of_package
+            if return_object.amount_from_package:
+                from_package = return_object.amount_from_package
+            product.overall_amount += sum([box, package,from_package])
+            print([box, package,from_package])
+            db.delete(return_object)
+            db.commit()
+        else:
+            return {"error":"Omborda Mahsulot yoki check item topilmadi Yetarli emas"}
         if return_object.box:
             product.overall_amount += product.amount_in_box *  product.amount_in_package * return_object.box 
         if return_object.amount_in_box:
@@ -157,9 +171,9 @@ async def return_endpoint(
 #     except Exception as e:
 #         return {"error": e}
 
-# user_token : user_models.UserLogin
+# 
 @app.post("/token/")
-async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
+async def login(user_token : user_models.UserLogin,database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)
