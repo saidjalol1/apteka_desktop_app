@@ -29,8 +29,24 @@ async def cashier(date: date = Query(None),current_user = current_user_dep,datab
         user_scores = user_score_retrieve(current_user.id, database, date)
     today_user_retrieve = today_user_score(current_user.id, database)
     today_score = sum([i.score for i in today_user_retrieve])
+    
+    user = database.query(models.User).join(models.UserShift).filter(models.User.id == current_user.id).first()
+    user  = {
+                "id": user.id,
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "type" : "Kassir" if user.is_admin == False else "Admin",
+                "born_date" : user.born_date,
+                "phone": user.phone_number,
+                "address" : user.address,
+                "shift": {
+                    "id": user.shift.id,
+                    "name": user.shift.name
+                }
+            }
     print(today_user_retrieve)
-    profile_data = {"user": current_user,"user_salaries": user_salary, "user_scores":user_scores, "score_today":today_score}
+    profile_data = {"user": user,"user_salaries": user_salary, "user_scores":user_scores, "score_today":today_score}
     return profile_data
 
 
