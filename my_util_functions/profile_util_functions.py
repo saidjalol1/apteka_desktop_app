@@ -3,25 +3,25 @@ import datetime
 from datetime import date, timedelta
 from fastapi import HTTPException, status
 from database_models import models
-from sqlalchemy import func, cast, Date, and_, extract
+from sqlalchemy import func, and_, extract
 from sqlalchemy.orm import Session, joinedload
-from database_config.database_conf import get_db, current_time
-from pydantic_models import user_models, product_models, sale_models, salary_models
+from database_config.database_conf import  current_time
 from dateutil.relativedelta import relativedelta
 
 
 today_date = current_time().date()
 first_day_of_current_month = today_date.replace(day=1)
 
-# Calculate the first and last days of the previous month
+
 first_day_of_last_month = (first_day_of_current_month - relativedelta(months=1)).replace(day=1)
 last_day_of_last_month = first_day_of_current_month - datetime.timedelta(days=1)
 
-# Helper function to get the start date of the current quarter
+
 def get_current_quarter_start_date():
     today = current_time().date().today()
     quarter = (today.month - 1) // 3 + 1
     return date(today.year, 3 * quarter - 2, 1)
+
 
 def user_score_retrieve(user_id: int, db, date=None, this_month= None):
     query = db.query(models.UserScores)\
@@ -90,6 +90,7 @@ def today_user_score(user_id, db):
                                     extract('day', models.Sale.date_added) == today_date.day
                                 )).all()
     return scores
+
 
 def user_salaries(user_id, db, date=None, this_month=None):
     if date:
@@ -404,8 +405,6 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     return context
 
 
-
-
 def top_10_products_statistics(session, start_date=None, end_date=None, filter="thismonth"):
     today = current_time().date()
     if start_date and end_date:
@@ -425,7 +424,19 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filter criteria")
 
-    # Query to get the top 10 products by quantity sold and their total sales for the selected period
+    
+    overall_sales_revenue = session.query(
+        func.sum(models.Product.sale_price * models.SaleItem.amount_of_box).label('total_sales_revenue')
+    ).join(
+        models.SaleItem, models.SaleItem.product_id == models.Product.id
+    ).join(
+        models.Sale, models.Sale.id == models.SaleItem.sale_id
+    ).filter(
+        models.Sale.date_added >= start_date,
+        models.Sale.date_added <= end_date
+    ).scalar()
+
+    
     top_10_products = session.query(
         models.Product.name,
         func.sum(models.SaleItem.amount_of_box).label('quantity_sold'),
@@ -440,27 +451,28 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
     ).group_by(
         models.Product.id, models.Product.name
     ).order_by(
-        func.sum(models.SaleItem.amount_of_box).desc()  # Order by quantity sold descending
-    ).limit(10)  # Limit to top 10 products
+        func.sum(models.SaleItem.amount_of_box).desc() 
+    ).limit(10)
 
-    # Execute the query and fetch all results
+    
     top_10_products_stats = top_10_products.all()
 
-    # Prepare the statistics in a list of dictionaries
+    
     product_statistics = []
     for product in top_10_products_stats:
         if product.quantity_sold > 0 and product.total_sales > 0:
+            product_percentage_of_sales_revenue = (product.total_sales / overall_sales_revenue) * 100 if overall_sales_revenue else 0
             product_dict = {
                 'product_name': product.name,
                 'quantity_sold': product.quantity_sold,
                 'total_sales': product.total_sales,
+                'percentage_of_overall_sales_revenue': product_percentage_of_sales_revenue,
             }
             product_statistics.append(product_dict)
         else:
             pass
 
     return product_statistics
-
 
 
 def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth"):

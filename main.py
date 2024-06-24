@@ -14,36 +14,28 @@ from routes import cashier_route, admin_routes
 from database_config.database_conf import engine, get_db
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
-
 
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
-
-# origins = [
-#     "http://localhost",
-#     "http://localhost:8000",
-#     "http://localhost:3000/",
-#     "http://example.com",  # Replace with your actual front-end URL
-# ]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], # Allows specific origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
-)
-
-#Route Registery
-app.include_router(cashier_route.app)
-app.include_router(admin_routes.app)
-models.Base.metadata.create_all(bind=engine)
-
-# Get the current month and year
 current_month = datetime.now().month
 current_year = datetime.now().year
 
+
+app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"], 
+)
+
+
+app.include_router(cashier_route.app)
+app.include_router(admin_routes.app)
+models.Base.metadata.create_all(bind=engine)
 
 
 @app.get("/")
@@ -102,6 +94,7 @@ async def sell(
     except Exception as e:
             return {"error":"Bu check boshqa sotuvchiga tegishli"}
 
+
 @app.post("/cheque/")
 async def cheque():
     message = {
@@ -109,6 +102,7 @@ async def cheque():
     }
     print(message)
     return message
+
 
 @app.post("/return")
 async def return_endpoint(
@@ -146,21 +140,8 @@ async def return_endpoint(
         return {"error": e}
     
 
-# @app.post("/token/")
-# async def login(user_token : OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
-#     try:
-#         user = auth_main.authenticate_user(user_token.username,user_token.password, db)
-#         print(user)
-#         if not user:
-#             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "Could not validated the User")
-#         created_token = token.create_access_token(user.username, user.id, timedelta(minutes=1000))
-#         return {"access_token": created_token, "token_type": "bearer", "is_admin":user.is_admin}
-#     except Exception as e:
-#         return {"error": e}
-
-# 
 @app.post("/token/")
-async def login(user_token : user_models.UserLogin ,database = database_dep):
+async def login(user_token : user_models.UserLogin,database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)
@@ -170,16 +151,3 @@ async def login(user_token : user_models.UserLogin ,database = database_dep):
         return {"access_token": created_token, "token_type": "bearer", "is_admin":user.is_admin}
     except Exception as e:
         return {"error": e}
-
-
-# @app.post("/login/")
-# async def login(user_token : OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
-#     try:
-#         user = auth_main.authenticate_user(user_token.username,user_token.password, db)
-#         print(user)
-#         if not user:
-#             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "Could not validated the User")
-#         created_token = token.create_access_token(user.username, user.id, timedelta(minutes=1000))
-#         return {"access_token": created_token, "token_type": "bearer", "is_admin":user.is_admin}
-#     except Exception as e:
-#         return {"error": e}

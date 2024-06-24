@@ -4,13 +4,14 @@ from fastapi import APIRouter, Body, HTTPException, status,Depends, Query, File,
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date, and_, extract
 from database_config.database_conf import get_db, current_time
-
 from pydantic_models import product_models, user_models, sale_models, salary_models
 from database_models import models
 from auth import password, auth_main
 from crud import product_fetch_crud
 from my_util_functions.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports, get_sales_with_details, save_logo
 from fastapi.encoders import jsonable_encoder
+
+
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
 
@@ -19,6 +20,7 @@ app = APIRouter(
     prefix= "/admin",
     tags= ["Admin routes"]
 )
+
 
 @app.post("/create_user/", status_code=status.HTTP_201_CREATED)
 async def create_user(userin : user_models.CreateUser,current_user = current_user_dep,database = database_dep):

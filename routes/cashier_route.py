@@ -7,12 +7,13 @@ from database_config.database_conf import get_db, current_time
 from pydantic_models import user_models, product_models, sale_models, salary_models
 from auth import auth_main
 from database_models import models
-
 from  my_util_functions.profile_util_functions import today_user_score, user_score_retrieve, user_salaries
+
 
 app = APIRouter(
      tags=["Kassir Routerlari"]
 )
+
 
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
