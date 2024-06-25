@@ -23,21 +23,21 @@ def get_current_quarter_start_date():
     return date(today.year, 3 * quarter - 2, 1)
 
 
-def user_score_retrieve(user_id: int, db, date=None, this_month= None):
+def user_score_retrieve(user_id: int, db, date=None, this_month=None):
     query = db.query(models.UserScores)\
               .options(joinedload(models.UserScores.item))\
               .filter(models.UserScores.owner_id == user_id)
     
     if date:
         query = query.filter(
-            extract('year', models.UserScores.date_scored) == date.year,
-            extract('month', models.UserScores.date_scored) == date.month,
-            extract('day', models.UserScores.date_scored) == date.day
+            extract('year', models.UserScores.date_scored) == today_date.year,
+            extract('month', models.UserScores.date_scored) == today_date.month,
+            extract('day', models.UserScores.date_scored) == today_date.day
         )
     elif this_month:
         query = query.filter(
-            extract('year', models.UserScores.date_scored) == this_month.year,
-            extract('month', models.UserScores.date_scored) == this_month.month,
+            extract('year', models.UserScores.date_scored) == today_date.year,
+            extract('month', models.UserScores.date_scored) == today_date.month,
         )
     
     scores = query.all()

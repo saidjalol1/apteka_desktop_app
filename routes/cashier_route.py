@@ -3,12 +3,12 @@ from typing import List
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from database_config.database_conf import get_db, current_time
-
+from sqlalchemy import func, and_, extract
 from pydantic_models import user_models, product_models, sale_models, salary_models
 from auth import auth_main
 from database_models import models
 from  my_util_functions.profile_util_functions import today_user_score, user_score_retrieve, user_salaries
-
+today_date = current_time().date()
 
 app = APIRouter(
      tags=["Kassir Routerlari"]
@@ -31,12 +31,25 @@ async def cashier(date: date = Query(None),this_month: date = Query(None),curren
     if this_month:
         user_salary = user_salaries(current_user.id,database,  this_month)
         user_scores = user_score_retrieve(current_user.id, database,  this_month)
-        
+    
+    overall_user_scores_retrieve = database.query(models.UserScores).filter(models.UserScores.owner_id == current_user.id).all()
+    overall_user_score = sum([ i.score for i in overall_user_scores_retrieve])
+    
     today_user_retrieve = today_user_score(current_user.id, database)
     today_score = sum([i.score for i in today_user_retrieve])
     
     user = database.query(models.User).filter(models.User.id == current_user.id).first()
     user_shift = database.query(models.UserShift).filter(models.UserShift.id == user.shift_id).first()
+    
+    user_sc = database.query(models.UserScores).filter(models.UserScores.owner_id == current_user.id)
+    query = user_sc.filter(
+            extract('year', models.UserScores.date_scored) == today_date.year,
+            extract('month', models.UserScores.date_scored) == today_date.month,
+        )
+    
+    scores = query.all()
+    this_month_score = sum([ i.score for i in scores])
+    
     print(current_user)
     print(user)
     if user:
@@ -57,7 +70,7 @@ async def cashier(date: date = Query(None),this_month: date = Query(None),curren
         print(today_user_retrieve)
     else:
         return {"messsage":"User not found"}
-    profile_data = {"user": user,"user_salaries": user_salary, "user_scores":user_scores, "score_today":today_score}
+    profile_data = {"user": user,"user_salaries": user_salary,"overall_user_score":overall_user_score,"" "user_scores":user_scores, "score_today":today_score}
     return profile_data
 
 
