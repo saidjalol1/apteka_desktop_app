@@ -70,7 +70,7 @@ async def cashier(date: date = Query(None),this_month: date = Query(None),curren
         print(today_user_retrieve)
     else:
         return {"messsage":"User not found"}
-    profile_data = {"user": user,"user_salaries": user_salary,"overall_user_score":overall_user_score,"" "user_scores":user_scores, "score_today":today_score}
+    profile_data = {"user": user,"user_salaries": user_salary,"overall_user_score":overall_user_score,"this_month_score":this_month_score, "user_scores":user_scores, "score_today":today_score}
     return profile_data
 
 
