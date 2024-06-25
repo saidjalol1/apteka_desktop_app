@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from database_config.database_conf import get_db, current_time
@@ -20,7 +20,9 @@ current_user_dep : user_models.User = Depends(auth_main.get_current_user)
 
 
 @app.get("/profile/", name="profil")
-async def cashier(date: date = Query(None),this_month: date = Query(None),current_user = current_user_dep,database = database_dep):
+async def cashier(date: date = Query(None),this_month: date = Query(None),
+                  start_date: Optional[date] = None, end_date : Optional[date] = None,
+                  current_user = current_user_dep,database = database_dep):
     # If date is not given
     user_salary = user_salaries(current_user.id,database)
     user_scores = user_score_retrieve(current_user.id, database)
@@ -31,7 +33,10 @@ async def cashier(date: date = Query(None),this_month: date = Query(None),curren
     if this_month:
         user_salary = user_salaries(current_user.id,database,  this_month)
         user_scores = user_score_retrieve(current_user.id, database,  this_month)
-    
+    if start_date and end_date:
+        user_salary = user_salaries(current_user.id,database,  start_date, end_date)
+        user_scores = user_score_retrieve(current_user.id, database,  start_date, end_date)
+        
     overall_user_scores_retrieve = database.query(models.UserScores).filter(models.UserScores.owner_id == current_user.id).all()
     overall_user_score = sum([ i.score for i in overall_user_scores_retrieve])
     
