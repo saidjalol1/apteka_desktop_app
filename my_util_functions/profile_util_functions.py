@@ -23,36 +23,42 @@ def get_current_quarter_start_date():
     return date(today.year, 3 * quarter - 2, 1)
 
 
-def user_score_retrieve(user_id: int, db, date=None, this_month=None, start_date=None, end_date= None):
-    query = db.query(models.UserScores)\
-              .options(joinedload(models.UserScores.item))\
-              .filter(models.UserScores.owner_id == user_id)
-    
-    if date:
-        query = query.filter(
-            extract('year', models.UserScores.date_scored) == today_date.year,
-            extract('month', models.UserScores.date_scored) == today_date.month,
-            extract('day', models.UserScores.date_scored) == today_date.day
-        )
-    elif this_month:
-        query = query.filter(
-            extract('year', models.UserScores.date_scored) == today_date.year,
-            extract('month', models.UserScores.date_scored) == today_date.month,
-        )
-
+def user_score_retrieve(user_id, db, date=None, this_month=None, start_date=None, end_date=None):
     if start_date and end_date:
-        query = query.filter(
+        query = db.query(models.UserScores)\
+                .options(joinedload(models.UserScores.item))\
+                .filter(models.UserScores.owner_id == user_id).filter(
             models.UserScores.date_scored >= start_date,
             models.UserScores.date_scored <= end_date
-        )
+        ).all()
+        print(start_date, end_date, "hgreihg")
     
-    scores = query.all()
+    elif this_month:
+        query = db.query(models.UserScores)\
+                .options(joinedload(models.UserScores.item))\
+                .filter(models.UserScores.owner_id == user_id).filter(
+            extract('year', models.UserScores.date_scored) == this_month.year,
+            extract('month', models.UserScores.date_scored) == this_month.month,
+        ).all()
+
+    if date:
+        query =  db.query(models.UserScores)\
+                .options(joinedload(models.UserScores.item))\
+                .filter(models.UserScores.owner_id == user_id).filter(
+                    extract('year', models.UserScores.date_scored) == date.year,
+                    extract('month', models.UserScores.date_scored) == date.month,
+                    extract('day', models.UserScores.date_scored) == date.day
+                ).all()
+    else:
+        query = db.query(models.UserScores)\
+                .options(joinedload(models.UserScores.item))\
+                .filter(models.UserScores.owner_id == user_id).all()
     
-    if not scores:
+    if not query:
         return {"message": "There is no score for this user"}
     
     serialized_scores = []
-    for score in scores:
+    for score in query:
         item = score.item
         if item and item.sale_product_items:
             product = item.sale_product_items
@@ -87,7 +93,6 @@ def user_score_retrieve(user_id: int, db, date=None, this_month=None, start_date
 
 
 def today_user_score(user_id, db):
-    print(today_date , "Printed")
     scores = db.query(models.UserScores)\
             .options(joinedload(models.UserScores.item))\
             .filter(models.UserScores.owner_id == user_id).filter(and_(\
@@ -101,17 +106,18 @@ def today_user_score(user_id, db):
 def user_salaries(user_id, db, date=None, this_month=None, start_date=None, end_date= None):
     if date:
         user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).filter(and_(\
-                                    extract('year', models.UserSalaries.date_received) == today_date.year,
-                                    extract('month', models.UserSalaries.date_received) == today_date.month,
-                                    extract('day', models.UserSalaries.date_received) == today_date.day
+                                    extract('year', models.UserSalaries.date_received) == date.year,
+                                    extract('month', models.UserSalaries.date_received) == date.month,
+                                    extract('day', models.UserSalaries.date_received) == date.day
                                 )).all()
-    if this_month:
+    elif this_month:
+        print(this_month)
         user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).filter(and_(\
-                                    extract('year', models.UserSalaries.date_received) == today_date.year,
-                                    extract('month', models.UserSalaries.date_received) == today_date.month,
+                                    extract('year', models.UserSalaries.date_received) == this_month.year,
+                                    extract('month', models.UserSalaries.date_received) == this_month.month,
                                 )).all()
     
-    if start_date and end_date:
+    elif start_date and end_date:
         user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).filter(models.UserSalaries.date_received >= start_date,models.UserSalaries.date_received <= end_date).options(joinedload(models.UserSalaries.giver)).all()
     else:
         user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).all()

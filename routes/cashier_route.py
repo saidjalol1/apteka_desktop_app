@@ -28,15 +28,17 @@ async def cashier(date: date = Query(None),this_month: date = Query(None),
     user_scores = user_score_retrieve(current_user.id, database)
     # If date is given
     if date:
-        user_salary = user_salaries(current_user.id,database, date)
-        user_scores = user_score_retrieve(current_user.id, database, date)
-    if this_month:
-        user_salary = user_salaries(current_user.id,database,  this_month)
-        user_scores = user_score_retrieve(current_user.id, database,  this_month)
-    if start_date and end_date:
-        user_salary = user_salaries(current_user.id,database,  start_date, end_date)
-        user_scores = user_score_retrieve(current_user.id, database,  start_date, end_date)
-        
+        user_salary = user_salaries(current_user.id,database, date=date)
+        user_scores = user_score_retrieve(current_user.id, database, date=date)
+    elif this_month:
+        user_salary = user_salaries(current_user.id,database,  this_month=this_month)
+        user_scores = user_score_retrieve(current_user.id, database,  this_month=this_month)
+    elif start_date and end_date:
+        print(start_date, end_date)
+        user_salary = user_salaries(current_user.id,database,  start_date=start_date, end_date=end_date)
+        user_scores = user_score_retrieve(current_user.id, database,  start_date=start_date, end_date=end_date)
+    else:
+        pass
     overall_user_scores_retrieve = database.query(models.UserScores).filter(models.UserScores.owner_id == current_user.id).all()
     overall_user_score = sum([ i.score for i in overall_user_scores_retrieve])
     
@@ -54,9 +56,6 @@ async def cashier(date: date = Query(None),this_month: date = Query(None),
     
     scores = query.all()
     this_month_score = sum([ i.score for i in scores])
-    
-    print(current_user)
-    print(user)
     if user:
         user  = {
                     "id": user.id,
@@ -72,7 +71,6 @@ async def cashier(date: date = Query(None),this_month: date = Query(None),
                         "name": user_shift.name if user_shift else 'smenasi yo\'q'
                     }
                 }
-        print(today_user_retrieve)
     else:
         return {"messsage":"User not found"}
     profile_data = {"user": user,"user_salaries": user_salary,"overall_user_score":overall_user_score,"this_month_score":this_month_score, "user_scores":user_scores, "score_today":today_score}
