@@ -66,12 +66,30 @@ async def home(
         database.commit()
         database.refresh(check)
     response_check_model = sale_models.CheckOut.model_validate(check)
-    response_items = [ sale_models.SaleItemOut.model_validate(item) for item in items]
+    response_items = [sale_models.SaleItemOut.model_validate(item) for item in items]
     response_products = [ product_models.ProductOut.model_validate(product) for product in products]
+    
+    discount = sum([i.sale_product_items.discount_price for i in response_items])
+    total = sum([ i.total_sum for i in response_items])
+    payment = total - discount
+    
+    check.discount = discount
+    check.amount = payment
+    database.commit()
+    database.refresh(check)
+    
+    check_object = {
+        "total_discount": discount,
+        "total": total,
+        "payment" : payment
+        }
+    
+    
     object = {
         "products": response_products,
         "user_scores": user_score,
         "check": response_check_model,
+        "check_object": check_object,
         "items": response_items
     }
     return object
@@ -141,7 +159,7 @@ async def return_endpoint(
     
 
 @app.post("/token/")
-async def login(user_token : user_models.UserLogin,database = database_dep):
+async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)

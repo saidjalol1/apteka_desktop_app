@@ -31,8 +31,7 @@ def user_score_retrieve(user_id, db, date=None, this_month=None, start_date=None
             models.UserScores.date_scored >= start_date,
             models.UserScores.date_scored <= end_date
         ).all()
-        print(start_date, end_date, "hgreihg")
-    
+
     elif this_month:
         query = db.query(models.UserScores)\
                 .options(joinedload(models.UserScores.item))\
@@ -41,7 +40,7 @@ def user_score_retrieve(user_id, db, date=None, this_month=None, start_date=None
             extract('month', models.UserScores.date_scored) == this_month.month,
         ).all()
 
-    if date:
+    elif date:
         query =  db.query(models.UserScores)\
                 .options(joinedload(models.UserScores.item))\
                 .filter(models.UserScores.owner_id == user_id).filter(
