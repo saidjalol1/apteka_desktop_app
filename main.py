@@ -141,7 +141,7 @@ async def return_endpoint(
     
 
 @app.post("/token/")
-async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
+async def login(user_token : user_models.UserLogin,database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)
