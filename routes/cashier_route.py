@@ -110,12 +110,12 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
             product.overall_amount -= sum([box, package,from_package])
             product.box = product.overall_amount // (product.amount_in_box * product.amount_in_package)
         else:
-            return {"error":"Omborda Mahsulot Yetarli emas"}
+            return {"message":"Omborda Mahsulot Yetarli emas"}
         print(box)
         print(package)
         print(from_package)
     else:
-        return {"error": "Mahsulot topilmadi"}
+        return {"message": "Mahsulot topilmadi"}
                             
     database.add(sale_item)
     database.commit()
