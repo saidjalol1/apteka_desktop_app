@@ -130,6 +130,9 @@ async def return_endpoint(
     try:
         product = db.query(models.Product).filter(models.Product.id == return_object.product_id).first()
         if product:
+            box = 0
+            package = 0
+            from_package = 0
             if return_object.amount_of_box:
                 product.box += return_object.amount_of_box
                 box = product.amount_in_box *  product.amount_in_package * return_object.amount_of_box 

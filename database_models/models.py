@@ -12,6 +12,16 @@ class Category(Base):
     products = relationship("Product", back_populates="type")
     
     
+# class ReturnProducts(Base):
+#     __tablename__ = "return_products"
+    
+#     id = Column(Integer, primary_key=True)
+#     box = Column(Integer)
+#     amount_in_box = Column(Integer)
+#     amount_in_package = Column(Integer)
+    
+#     returned_products = relationship("Product", back_populates="returned")
+    
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True)
@@ -164,5 +174,8 @@ class DiscountCard(Base):
     id = Column(Integer, primary_key=True)
     number = Column(String)
     amount = Column(Float)
+    
+    
+
     
     
