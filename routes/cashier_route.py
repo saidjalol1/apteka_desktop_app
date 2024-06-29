@@ -155,7 +155,8 @@ async def sale(sale_item_id : int,current_user = current_user_dep,database = dat
             from_package = item.amount_from_package
         product.overall_amount += sum([box, package,from_package])
         print([box, package,from_package])
-        product.box += item.amount_of_box
+        if box:
+            product.box += item.amount_of_box
         database.delete(item)
         database.commit()
     else:
