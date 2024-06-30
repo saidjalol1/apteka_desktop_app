@@ -20,9 +20,11 @@ current_user_dep : user_models.User = Depends(auth_main.get_current_user)
 
 
 @app.get("/profile/", name="profil")
-async def cashier(date: date = Query(None),this_month: date = Query(None),
-                  start_date: Optional[date] = None, end_date : Optional[date] = None,
-                  current_user = current_user_dep,database = database_dep):
+async def cashier(  date: Optional[date] = Query(None),
+                    this_month: Optional[date] = Query(None),
+                    start_date: Optional[date] = Query(None),
+                    end_date: Optional[date] = Query(None),
+                    current_user = current_user_dep,database = database_dep):
     # If date is not given
     user_salary = user_salaries(current_user.id,database)
     user_scores = user_score_retrieve(current_user.id, database)
