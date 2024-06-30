@@ -84,7 +84,7 @@ async def home(
         "payment" : payment
         }
     
-    
+    print(response_products)
     object = {
         "products": response_products,
         "user_scores": user_score,
@@ -121,48 +121,89 @@ async def cheque():
     print(message)
     return message
 
-
-@app.post("/return")
-async def return_endpoint(
-        return_object : sale_models.Return,
-        current_user: user_models.User = Depends(auth_main.get_current_user),
-        db: Session = Depends(get_db)):
-    try:
-        product = db.query(models.Product).filter(models.Product.id == return_object.product_id).first()
-        if product:
-            box = 0
-            package = 0
-            from_package = 0
-            if return_object.amount_of_box:
-                product.box += return_object.amount_of_box
-                box = product.amount_in_box *  product.amount_in_package * return_object.amount_of_box 
-            if return_object.amount_of_package:
-                package = product.amount_in_package * return_object.amount_of_package
-            if return_object.amount_from_package:
-                from_package = return_object.amount_from_package
-            product.overall_amount += sum([box, package,from_package])
-            print([box, package,from_package])
-            db.delete(return_object)
-            db.commit()
-        else:
-            return {"error":"Omborda Mahsulot yoki check item topilmadi Yetarli emas"}
-        if return_object.box:
-            product.overall_amount += product.amount_in_box *  product.amount_in_package * return_object.box 
-        if return_object.amount_in_box:
-            product.overall_amount += product.amount_in_box * return_object.amount_in_box
-        if return_object.amount_in_package:
-            product.overall_amount += return_object.amount_in_package
-        product.box = product.overall_amount // (product.amount_in_box * product.amount_in_package)
-        db.commit()
-        db.refresh(product)
-        return {"message": "success"}
-    except Exception as e:
-        print(e)
-        return {"error": e}
     
+@app.post("/remove_from_check/")
+async def sale(sale_item_in: sale_models.ReturnIn,current_user = current_user_dep,database = database_dep):
+    sale_item = models.ReturnItems(**sale_item_in.model_dump())
+    product = database.query(models.Product).filter(models.Product.id == sale_item.product_id).first()
+    if product:
+        box = 0
+        package = 0
+        from_package = 0
+        if sale_item_in.amount_of_box:
+            box = product.amount_in_box *  product.amount_in_package * sale_item_in.amount_of_box 
+        if sale_item_in.amount_of_package:
+            package = product.amount_in_package * sale_item_in.amount_of_package
+        if sale_item_in.amount_from_package:
+            from_package = sale_item_in.amount_from_package
+        overall_for_sale = sum([box, package,from_package])
+        if product.overall_amount >= overall_for_sale:
+            product.overall_amount += sum([box, package,from_package])
+            product.box = product.overall_amount // (product.amount_in_box * product.amount_in_package)
+        else:
+            return {"message":"Omborda Mahsulot Yetarli emas"}
+        print(box)
+        print(package)
+        print(from_package)
+    else:
+        return {"message": "Mahsulot topilmadi"}
+                            
+    database.add(sale_item)
+    database.commit()
+    database.refresh(sale_item)
+    return {"message": "success"}
+
+
+
+@app.get("/return/")
+async def home(
+        return_id : Optional[int] = None,
+        current_user = current_user_dep,database = database_dep):
+    
+    items = []
+    if return_id:
+       check =  database.query(models.Return).filter(models.Return.id == return_id).first()
+       items = database.query(models.ReturnItems).filter(models.ReturnItems.return_id == return_id).all()
+    else:
+        check = models.Return(
+            amount = 0,
+            discount = 0,
+            owner_id = current_user.id
+        )
+        database.add(check)
+        database.commit()
+        database.refresh(check)
+    response_check_model = sale_models.ResponceReturn.model_validate(check)
+    response_items = [sale_models.ReturnOut.model_validate(item) for item in items]
+    
+    discount = sum([i.returned_items.discount_price for i in response_items])
+    total = sum([ i.total_sum for i in response_items])
+    payment = total - discount
+    
+    check.discount = discount
+    check.amount = payment
+    database.commit()
+    database.refresh(check)
+    
+    check_object = {
+        "total_discount": discount,
+        "total": total,
+        "payment" : payment
+        }
+    
+    
+    object = {
+        "check": response_check_model,
+        "check_object": check_object,
+        "items": response_items
+    }
+    return object
+
+
+
 
 @app.post("/token/")
-async def login(user_token : user_models.UserLogin,database = database_dep):
+async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)

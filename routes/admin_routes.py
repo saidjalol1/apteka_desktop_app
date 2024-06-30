@@ -61,10 +61,10 @@ async def salary_give(salary :salary_models.SalaryInModel,current_user = current
 @app.post("/product/create")
 async def create_product(product: product_models.ProductIn,current_user = current_user_dep,database = database_dep):
     if current_user.is_admin:
-        product = product_fetch_crud.create(database,product)
+        return product_fetch_crud.create(database,product)
     else:
         return {"error":"only admin can access this route"}
-    return {"message":"success"}
+
 
 
 @app.post("/shift/add")

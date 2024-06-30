@@ -39,14 +39,29 @@ class CheckOut(BaseModel):
     class Config:
         from_attributes = True
 
-class Return(BaseModel):
-    product_id : int
-    box : Optional[Union[int, None]] = None
-    amount_in_box : Optional[Union[int, None]] = None
-    amount_in_package : Optional[Union[int, None]] = None
+class ReturnIn(BaseModel):
+    amount_of_box : Optional[Union[int, None]] = None
+    amount_of_package : Optional[Union[int, None]] = None
+    amount_from_package : Optional[Union[int, None]] = None
+    total_sum : Optional[Union[float, None]] = None
+    product_id : Optional[Union[int, None]] = None
+    return_id : int
     
-    
+class ReturnOut(ReturnIn):
+    id: int
+    returned_items : ProductOut
 
+    class Config:
+        from_attributes = True
+        
+class ResponceReturn(BaseModel):
+    id: int
+    discount : Optional[Union[float, None]] = None
+    amount: float
+
+    class Config:
+        from_attributes = True
+    
 class CheckLayout(BaseModel):
     name : str
     logo : Optional[bytes]

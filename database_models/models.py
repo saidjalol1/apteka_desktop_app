@@ -12,16 +12,6 @@ class Category(Base):
     products = relationship("Product", back_populates="type")
     
     
-# class ReturnProducts(Base):
-#     __tablename__ = "return_products"
-    
-#     id = Column(Integer, primary_key=True)
-#     box = Column(Integer)
-#     amount_in_box = Column(Integer)
-#     amount_in_package = Column(Integer)
-    
-#     returned_products = relationship("Product", back_populates="returned")
-    
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True)
@@ -43,11 +33,16 @@ class Product(Base):
     sale_price_in_percent = Column(Float)
     discount_price = Column(Float)
     overall_amount = Column(Integer, default=0)
-    type_id  = Column("Category", ForeignKey('category.id'))
     score = Column(Integer)
-    sale_product = relationship("SaleItem", back_populates="sale_product_items")
-    type = relationship("Category", back_populates="products")
     overall_price = Column(Float)
+    
+    type_id  = Column("Category", ForeignKey('category.id'))
+    
+    
+    sale_product = relationship("SaleItem", back_populates="sale_product_items")
+    product_returned = relationship("ReturnItems", back_populates="returned_items")
+    type = relationship("Category", back_populates="products")
+
 
 class SaleItem(Base):
     __tablename__ = "sale_items"
@@ -63,6 +58,33 @@ class SaleItem(Base):
     sale_product_items = relationship("Product", back_populates="sale_product")
     sale = relationship("Sale", back_populates="items")
     user_scores = relationship("UserScores", back_populates="item")
+
+
+class ReturnItems(Base):
+    __tablename__ = "return_items"
+    
+    id = Column(Integer, primary_key=True)
+    amount_of_box = Column(Integer)
+    amount_of_package = Column(Integer)
+    amount_from_package = Column(Integer)
+    total_sum = Column(Float)
+    product_id = Column("Product", ForeignKey('products.id'))
+    return_id = Column("Return", ForeignKey('return.id'))
+    
+    returned_items = relationship("Product", back_populates="product_returned")
+    return_obj = relationship("Return", back_populates="items")
+
+
+class Return(Base):
+    __tablename__ = "return"
+    
+    id = Column(Integer, primary_key=True)
+    amount = Column(Integer)
+    date_added = Column(DateTime, default=current_time)
+    discount = Column(Float)
+    payment_type = Column(String)
+    owner_id = Column("User", ForeignKey('users.id'))
+    items = relationship("ReturnItems", back_populates="return_obj")
 
 
 class Sale(Base):
