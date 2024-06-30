@@ -158,8 +158,10 @@ async def sale(sale_item_in: sale_models.ReturnIn,current_user = current_user_de
 @app.get("/return/")
 async def home(
         return_id : Optional[int] = None,
+        skip: int = 0, limit: int = 10,
         current_user = current_user_dep,database = database_dep):
     
+    products = product_fetch_crud.get_products(database, skip, limit)
     items = []
     if return_id:
        check =  database.query(models.Return).filter(models.Return.id == return_id).first()
@@ -175,6 +177,7 @@ async def home(
         database.refresh(check)
     response_check_model = sale_models.ResponceReturn.model_validate(check)
     response_items = [sale_models.ReturnOut.model_validate(item) for item in items]
+    response_products = [ product_models.ProductOut.model_validate(product) for product in products]
     
     discount = sum([i.returned_items.discount_price for i in response_items])
     total = sum([ i.total_sum for i in response_items])
@@ -195,7 +198,8 @@ async def home(
     object = {
         "check": response_check_model,
         "check_object": check_object,
-        "items": response_items
+        "items": response_items,
+        "products":response_products
     }
     return object
 
