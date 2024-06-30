@@ -168,10 +168,10 @@ async def sale(return_item_id : int,current_user = current_user_dep,database = d
             package = product.amount_in_package * item.amount_of_package
         if item.amount_from_package:
             from_package = item.amount_from_package
-        product.overall_amount += sum([box, package,from_package])
+        product.overall_amount -= sum([box, package,from_package])
         print([box, package,from_package])
         if box:
-            product.box += item.amount_of_box
+            product.box -= item.amount_of_box
         database.delete(item)
         database.commit()
     else:
