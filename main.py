@@ -154,6 +154,30 @@ async def sale(sale_item_in: sale_models.ReturnIn,current_user = current_user_de
     return {"message": "success"}
 
 
+@app.delete("/delete_return_item/")
+async def sale(return_item_id : int,current_user = current_user_dep,database = database_dep):
+    item = database.query(models.ReturnItems).filter(models.ReturnItems.id == return_item_id).first()
+    product = database.query(models.Product).filter(models.Product.id == item.product_id).first()
+    if product:
+        box = 0
+        package = 0
+        from_package = 0
+        if item.amount_of_box:
+            box = product.amount_in_box *  product.amount_in_package * item.amount_of_box 
+        if item.amount_of_package:
+            package = product.amount_in_package * item.amount_of_package
+        if item.amount_from_package:
+            from_package = item.amount_from_package
+        product.overall_amount += sum([box, package,from_package])
+        print([box, package,from_package])
+        if box:
+            product.box += item.amount_of_box
+        database.delete(item)
+        database.commit()
+    else:
+        return {"error":"Omborda Mahsulot yoki check item topilmadi Yetarli emas"}
+    return {"message": "success"}
+
 
 @app.get("/return/")
 async def home(
