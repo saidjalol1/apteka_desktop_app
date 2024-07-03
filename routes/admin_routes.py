@@ -27,7 +27,7 @@ async def create_user(userin : user_models.CreateUser,current_user = current_use
     try:
         user = models.User(**userin.model_dump())
         user.hashed_password = password.pwd_context.hash(userin.hashed_password)
-        database.add(user)
+        database.add(user)  
         database.commit()
         database.refresh(user)
         return {"message": "success"}
