@@ -65,6 +65,7 @@ async def home(
         database.add(check)
         database.commit()
         database.refresh(check)
+        
     response_check_model = sale_models.CheckOut.model_validate(check)
     response_items = [sale_models.SaleItemOut.model_validate(item) for item in items]
     response_products = [ product_models.ProductOut.model_validate(product) for product in products]
@@ -278,7 +279,7 @@ async def delay_check(check_id:int, db = database_dep):
 
 
 @app.post("/token/")
-async def login(user_token : user_models.UserLogin,database = database_dep):
+async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)
