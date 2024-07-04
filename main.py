@@ -136,7 +136,7 @@ async def sell(
         return {"message": "success"}
     
     except Exception as e:
-            return {"error":"Bu check boshqa sotuvchiga tegishli"}
+            return {"error":e}
 
 
 @app.post("/cheque/")
