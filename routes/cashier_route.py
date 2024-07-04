@@ -122,21 +122,6 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
     database.add(sale_item)
     database.commit()
     database.refresh(sale_item)
-    
-    drug_count = sum([box, package,from_package])
-    base_score = product.score / (product.amount_in_box * product.amount_in_package)
-    score = drug_count * base_score
-    
-    
-    user_score = models.UserScores(
-        score = score,
-        owner_id = current_user.id,
-        sale_item_id = sale_item.id
-    )
-    print(user_score.score)
-    database.add(user_score)
-    database.commit()
-    database.refresh(user_score)
     return {"message": "success"}
 
 
@@ -189,3 +174,28 @@ async def expance(current_user = current_user_dep, database = database_dep):
         print(e)
         return {"error": e}
     
+
+@app.post("/delay/check")
+async def delay_check(check_id:int, db = database_dep):
+    obj = db.query(models.Sale).filter(models.Sale.id == check_id).first()
+    for i in obj.items:
+        product = db.query(models.Product).filter(models.Product.id == i.product_id).first()
+        box = 0
+        package = 0
+        from_package = 0
+        if i.amount_of_box:
+            box = product.amount_in_box *  product.amount_in_package * i.amount_of_box 
+        if i.amount_of_package:
+            package = product.amount_in_package * i.amount_of_package
+        if i.amount_from_package:
+            from_package = i.amount_from_package
+        product.overall_amount += sum([box, package,from_package])
+        print([box, package,from_package])
+        if box:
+            product.box += i.amount_of_box
+        db.delete(i)
+        db.commit()
+    
+    db.delete(obj)
+    db.commit()
+    return {"message":"success"}

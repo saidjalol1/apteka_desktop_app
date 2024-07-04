@@ -101,6 +101,7 @@ async def sell(
         current_user = current_user_dep,database = database_dep):
     try:
         check = database.query(models.Sale).filter(models.Sale.id == check_object.check_id).filter(models.Sale.owner_id == current_user.id).first()
+        items = database.query(models.SaleItem).filter(models.SaleItem.sale_id == check_object.check_id).all()
         check.status = "sotilgan"   
         check.amount = check_object.total
         check.discount = check_object.discount
@@ -108,7 +109,32 @@ async def sell(
         check.payment_type = check_object.payment_type
         database.commit()
         database.refresh(check)
+        
+        
+        
+        for i in items:
+            product = database.query(models.Product).filter(models.Product.id == i.product_id).first()
+            box = product.amount_in_box *  product.amount_in_package * i.amount_of_box 
+            package = product.amount_in_package * i.amount_of_package
+            from_package = i.amount_from_package
+            
+            drug_count = sum([box, package,from_package])
+            base_score = product.score / (product.amount_in_box * product.amount_in_package)
+            score = drug_count * base_score
+    
+    
+            user_score = models.UserScores(
+                score = score,
+                owner_id = current_user.id,
+                sale_item_id = i.id
+            )
+            print(user_score.score)
+            database.add(user_score)
+            database.commit()
+            database.refresh(user_score)
+        
         return {"message": "success"}
+    
     except Exception as e:
             return {"error":"Bu check boshqa sotuvchiga tegishli"}
 
@@ -228,6 +254,30 @@ async def home(
     return object
 
 
+@app.post("/delay/return")
+async def delay_check(check_id:int, db = database_dep):
+    obj = db.query(models.Return).filter(models.Return.id == check_id).first()
+    for i in obj.items:
+        product = db.query(models.Product).filter(models.Product.id == i.product_id).first()
+        box = 0
+        package = 0
+        from_package = 0
+        if i.amount_of_box:
+            box = product.amount_in_box *  product.amount_in_package * i.amount_of_box 
+        if i.amount_of_package:
+            package = product.amount_in_package * i.amount_of_package
+        if i.amount_from_package:
+            from_package = i.amount_from_package
+        product.overall_amount += sum([box, package,from_package])
+        print([box, package,from_package])
+        if box:
+            product.box += i.amount_of_box
+        db.delete(i)
+        db.commit()
+    
+    db.delete(obj)
+    db.commit()
+    return {"message":"success"}
 
 
 @app.post("/token/")

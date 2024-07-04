@@ -196,6 +196,9 @@ class DiscountCard(Base):
     id = Column(Integer, primary_key=True)
     number = Column(String)
     amount = Column(Float)
+    name = Column(String)
+    surname = Column(String)
+    date_added = Column(DateTime, default=current_time)
     
     
 

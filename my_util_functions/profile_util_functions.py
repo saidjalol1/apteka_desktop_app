@@ -253,16 +253,16 @@ def sale_statistics(session):
     quantity_sales_percent_change = calculate_percent_change(quantity_of_sales_current_month, quantity_of_sales_last_month)
 
     context = {
-        "overall_sum_of_sale": overall_sum_sales_current_month,
-        "overall_sum_of_profit": overall_profit_current_month,
-        "quantity_of_sales_current_month": quantity_of_sales_current_month,
-        "overall_sum_salaries_current_month": overall_sum_salaries_current_month,
-        "overall_sum_expance_current_month": overall_sum_expance_current_month,
+        "overall_sum_of_sale": round(overall_sum_sales_current_month),
+        "overall_sum_of_profit": round(overall_profit_current_month),
+        "quantity_of_sales_current_month": round(quantity_of_sales_current_month),
+        "overall_sum_salaries_current_month": round(overall_sum_salaries_current_month),
+        "overall_sum_expance_current_month": round(overall_sum_expance_current_month),
         # In Percent
-        "salary_change_percent":salary_change_percent,
-        "sales_percent_change": sales_percent_change,
-        "profit_percent_change": profit_percent_change,
-        "quantity_sales_percent_change": quantity_sales_percent_change
+        "salary_change_percent":round(salary_change_percent),
+        "sales_percent_change": round(sales_percent_change),
+        "profit_percent_change": round(profit_percent_change),
+        "quantity_sales_percent_change": round(quantity_sales_percent_change)
     }
 
     return context
@@ -403,17 +403,17 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     quantity_sales_percent_change = calculate_percent_change(quantity_of_sales_current_period, quantity_of_sales_last_period)
 
     context = {
-        "overall_sum_of_sale": overall_sum_sales_current_period,
-        "overall_sum_of_profit": overall_profit_current_period,
-        "quantity_of_sales_current_month": quantity_of_sales_current_period,
-        "overall_sum_salaries_current_month": overall_sum_salaries_current_period,
-        "overall_sum_expense_current_month": overall_sum_expenses_current_period,
-        "naqd_savdo": cash_sales_current_period,
-        "nasiya_savdo": credit_sales_current_period,
-        "salary_change_percent": salary_change_percent,
-        "sales_percent_change": sales_percent_change,
-        "profit_percent_change": profit_percent_change,
-        "quantity_sales_percent_change": quantity_sales_percent_change
+        "overall_sum_of_sale": round(overall_sum_sales_current_period),
+        "overall_sum_of_profit": round(overall_profit_current_period),
+        "quantity_of_sales_current_month": round(quantity_of_sales_current_period),
+        "overall_sum_salaries_current_month": round(overall_sum_salaries_current_period),
+        "overall_sum_expense_current_month": round(overall_sum_expenses_current_period),
+        "naqd_savdo": round(cash_sales_current_period),
+        "nasiya_savdo": round(credit_sales_current_period),
+        "salary_change_percent": round(salary_change_percent),
+        "sales_percent_change": round(sales_percent_change),
+        "profit_percent_change": round(profit_percent_change),
+        "quantity_sales_percent_change": round(quantity_sales_percent_change)
     }
 
     return context
@@ -480,7 +480,7 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
                 'product_name': product.name,
                 'quantity_sold': product.quantity_sold,
                 'total_sales': product.total_sales,
-                'percentage_of_overall_sales_revenue': product_percentage_of_sales_revenue,
+                'percentage_of_overall_sales_revenue': round(product_percentage_of_sales_revenue),
             }
             product_statistics.append(product_dict)
         else:
