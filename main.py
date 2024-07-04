@@ -99,7 +99,6 @@ async def home(
 async def sell(
         check_object : sale_models.Sell,
         current_user = current_user_dep,database = database_dep):
-    try:
         check = database.query(models.Sale).filter(models.Sale.id == check_object.check_id).filter(models.Sale.owner_id == current_user.id).first()
         items = database.query(models.SaleItem).filter(models.SaleItem.sale_id == check_object.check_id).all()
         check.status = "sotilgan"   
@@ -135,8 +134,6 @@ async def sell(
         
         return {"message": "success"}
     
-    except Exception as e:
-            return {"error":e}
 
 
 @app.post("/cheque/")
@@ -281,7 +278,7 @@ async def delay_check(check_id:int, db = database_dep):
 
 
 @app.post("/token/")
-async def login(user_token : user_models.UserLogin,database = database_dep):
+async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)
