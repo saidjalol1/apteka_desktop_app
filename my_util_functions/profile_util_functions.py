@@ -1,4 +1,5 @@
 import os
+import qrcode
 import datetime
 from datetime import date, timedelta
 from fastapi import HTTPException, status
@@ -664,3 +665,15 @@ def save_logo(logo_data: bytes, filename: str) -> str:
         f.write(logo_data)
 
     return logo_path
+
+def generate_qr_code(data: str, path: str):
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    img.save(path)

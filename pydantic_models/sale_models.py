@@ -1,14 +1,17 @@
 from typing import Union, Optional
 from pydantic import BaseModel
 from .product_models import ProductOut
-
+from datetime import datetime
     
 class Sell(BaseModel):
     check_id: int
+    discount_card_id: Optional[Union[int, None]] = None
+    from_discount_card: Optional[Union[float, None]] = None
     payment_type: Optional[Union[str, None]] = None
     discount : Optional[Union[float, None]] = None
     person : Optional[Union[str, None]] = None
     total: float
+    with_discount_card : bool = False
     
 
 class SaleItemIn(BaseModel):
@@ -71,6 +74,12 @@ class CheckLayout(BaseModel):
     shift_id : int
     
 
-class DiscountCardIn:
-    number : Optional[Union[int, None]] = None
-    amount : Optional[Union[int, None]] = None
+class DiscountCardIn(BaseModel):
+    number : str
+    amount : float
+    name :str
+    surname : str
+    
+class DiscountCardOut(DiscountCardIn):
+    id : int
+    qr_code_image : str

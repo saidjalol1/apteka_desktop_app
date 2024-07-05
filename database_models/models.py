@@ -194,6 +194,7 @@ class DiscountCard(Base):
     __tablename__ = "discount_cards"
     
     id = Column(Integer, primary_key=True)
+    qr_code_image = Column(String)
     number = Column(String)
     amount = Column(Float)
     name = Column(String)

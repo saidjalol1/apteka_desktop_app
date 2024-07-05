@@ -110,7 +110,19 @@ async def sell(
         database.commit()
         database.refresh(check)
         
-        
+        if check_object.discount_card_id:
+            card = database.query(models.DiscountCard).filter(models.DiscountCard.id == check_object.discount_card_id).first()
+            if card:
+                if check_object.with_discount_card:
+                    if card.amount >= check_object.from_discount_card:
+                        card.amount -= check_object.from_discount_card
+                        database.commit()
+                        database.refresh(card)
+                    else:
+                        return {"message":"Kartada yetarli pul mavjud emas"}
+                else:
+                    card.amount += check_object.discount
+                    database.commit()
         
         for i in items:
             product = database.query(models.Product).filter(models.Product.id == i.product_id).first()

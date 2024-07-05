@@ -1,3 +1,4 @@
+import os
 from datetime import date, timedelta
 from typing import Annotated, Optional, List
 from fastapi import APIRouter, Body, HTTPException, status,Depends, Query, File, Form, UploadFile
@@ -8,7 +9,7 @@ from pydantic_models import product_models, user_models, sale_models, salary_mod
 from database_models import models
 from auth import password, auth_main
 from crud import product_fetch_crud
-from my_util_functions.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports, get_sales_with_details, save_logo
+from my_util_functions.profile_util_functions import sale_statistics, top_10_products_statistics, workers_tabel, reports, get_sales_with_details, save_logo, generate_qr_code
 from fastapi.encoders import jsonable_encoder
 
 
@@ -166,3 +167,41 @@ async def create_check_layout(
         return {"message":"error"}
     
 
+@app.post("/discount-card/create", response_model=sale_models.DiscountCardOut)
+async def create_discount_card(
+    obj : sale_models.DiscountCardIn,
+    current_user = current_user_dep,
+    db = database_dep
+):
+    try:
+        # Create a new discount card
+        new_card = models.DiscountCard(
+            number=obj.number,
+            amount=obj.amount,
+            name=obj.name,
+            surname=obj.surname
+        )
+        db.add(new_card)
+        db.commit()
+        db.refresh(new_card)
+        # Generate a QR code
+        qr_code_filename = f"{obj.number}.png"
+        qr_code_path = os.path.join("static/qrcodes/", qr_code_filename)
+        generate_qr_code(new_card.id, qr_code_path)
+        new_card.qr_code_image = qr_code_path
+
+        # Save the discount card to the database
+        db.commit()
+        db.refresh(new_card)
+
+        return new_card
+    except Exception as e:
+        return {"message": e}
+
+@app.get("/discount-cards/", response_model= List[sale_models.DiscountCardOut])
+async def create_discount_card(
+    current_user = current_user_dep,
+    db = database_dep
+):
+   objs = db.query(models.DiscountCard).all()
+   return objs
