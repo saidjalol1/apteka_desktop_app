@@ -67,8 +67,7 @@ class UserScoreOut(BaseModel):
     date_scored : datetime
     item : SaleItemOut
     
-    
 class UserOut(BaseModel):
-    id : id
+    id : int
     first_name : str
     last_name : str
