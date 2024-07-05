@@ -51,12 +51,19 @@ async def salary_give(salary :salary_models.SalaryInModel,current_user = current
     if current_user.is_admin:
         slary = models.UserSalaries(**salary.model_dump())
         slary.giver_id = current_user.id
+        slary.type = "oylik"
         database.add(slary)
         database.commit()
         database.refresh(slary)
         return {"message": "success"}
     else:
         return {"error":"only admin can access this route"}
+
+
+@app.get("/users/", response_model=List[user_models.UserOut])
+async def users_get(db = database_dep):
+    users = db.query(models.User).all()
+    return users
 
 # Product Routes
 @app.post("/product/create")

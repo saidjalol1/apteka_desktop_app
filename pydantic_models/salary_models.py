@@ -7,7 +7,6 @@ from pydantic import BaseModel
 class SalaryInModel(BaseModel):
     amount : Union[float, int]
     type : Union[str, None]
-    date_received : Union[date, None]
     receiver_id : Union[int, None]
     
     class Config:
