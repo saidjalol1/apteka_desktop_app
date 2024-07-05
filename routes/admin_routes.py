@@ -205,3 +205,12 @@ async def create_discount_card(
 ):
    objs = db.query(models.DiscountCard).all()
    return objs
+
+@app.get("/card/", response_model= sale_models.DiscountCardOut)
+async def create_discount_card(
+    card_id : int,
+    current_user = current_user_dep,
+    db = database_dep
+):
+   objs = db.query(models.DiscountCard).filter(models.DiscountCard.id == card_id).first()
+   return objs
