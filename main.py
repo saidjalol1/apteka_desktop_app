@@ -124,11 +124,16 @@ async def sell(
                     card.amount += check_object.discount
                     database.commit()
         
+        box = 0
+        package = 0
+        from_package = 0
         for i in items:
             product = database.query(models.Product).filter(models.Product.id == i.product_id).first()
             box = product.amount_in_box *  product.amount_in_package * i.amount_of_box 
-            package = product.amount_in_package * i.amount_of_package
-            from_package = i.amount_from_package
+            if i.amount_of_package:
+                package = product.amount_in_package * i.amount_of_package
+            if i.amount_from_package:
+                from_package = i.amount_from_package
             
             drug_count = sum([box, package,from_package])
             base_score = product.score / (product.amount_in_box * product.amount_in_package)
