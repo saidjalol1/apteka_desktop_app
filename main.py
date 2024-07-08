@@ -74,6 +74,7 @@ async def home(
     package = 0
     from_package = 0
     overall_discount = 0
+    discount = 0
     for sale_item_in in response_items:
         product = database.query(models.Product).filter(models.Product.id == sale_item_in.product_id).first()
         box = 0
@@ -86,7 +87,7 @@ async def home(
         if sale_item_in.amount_from_package:
             from_package = sale_item_in.amount_from_package
         overall_for_sale = sum([box, package,from_package])
-    
+
         discount = sum([(sale_item_in.sale_product_items.discount_price / (sale_item_in.sale_product_items.amount_in_box * sale_item_in.sale_product_items.amount_in_package)) * overall_for_sale  for sale_item_in in response_items])
         overall_discount += discount
         
