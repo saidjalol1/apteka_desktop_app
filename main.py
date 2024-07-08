@@ -70,11 +70,30 @@ async def home(
     response_items = [sale_models.SaleItemOut.model_validate(item) for item in items]
     response_products = [ product_models.ProductOut.model_validate(product) for product in products]
     
-    discount = sum([i.sale_product_items.discount_price for i in response_items])
+    box = 0
+    package = 0
+    from_package = 0
+    overall_discount = 0
+    for sale_item_in in response_items:
+        product = database.query(models.Product).filter(models.Product.id == sale_item_in.product_id).first()
+        box = 0
+        package = 0
+        from_package = 0
+        if sale_item_in.amount_of_box:
+            box = product.amount_in_box *  product.amount_in_package * sale_item_in.amount_of_box 
+        if sale_item_in.amount_of_package:
+            package = product.amount_in_package * sale_item_in.amount_of_package
+        if sale_item_in.amount_from_package:
+            from_package = sale_item_in.amount_from_package
+        overall_for_sale = sum([box, package,from_package])
+    
+        discount = sum([(sale_item_in.sale_product_items.discount_price / (sale_item_in.sale_product_items.amount_in_box * sale_item_in.sale_product_items.amount_in_package)) * overall_for_sale  for sale_item_in in response_items])
+        overall_discount += discount
+        
     total = sum([ i.total_sum for i in response_items])
     payment = total - discount
     
-    check.discount = discount
+    check.discount = overall_discount
     check.amount = payment
     database.commit()
     database.refresh(check)
@@ -84,8 +103,7 @@ async def home(
         "total": total,
         "payment" : payment
         }
-    
-    print(response_products)
+
     object = {
         "products": response_products,
         "user_scores": user_score,
