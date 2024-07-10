@@ -633,6 +633,7 @@ def get_sales_with_details(session: Session, start_date=None, end_date=None, fil
         models.Sale.date_added.desc()  # Order by date added descending
     ).all()
 
+    
     # Prepare the sales data in a list of dictionaries
     sales_statistics = []
     for sale in sales_with_details:
@@ -650,6 +651,7 @@ def get_sales_with_details(session: Session, start_date=None, end_date=None, fil
             'shift_name': sale.shift_name
         }
         sales_statistics.append(sale_dict)
+        print(sale_dict)
     return sales_statistics
 
 
