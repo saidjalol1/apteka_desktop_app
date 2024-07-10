@@ -7,7 +7,7 @@ class Sell(BaseModel):
     check_id: int
     discount_card_id: Optional[Union[int, None]] = None
     from_discount_card: Optional[Union[float, None]] = None
-    payment_type: Optional[Union[str, None]] = None
+    payment_type: str
     discount : Optional[Union[float, None]] = None
     person : Optional[Union[str, None]] = None
     total: float

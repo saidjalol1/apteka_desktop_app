@@ -118,6 +118,7 @@ async def home(
 async def sell(
         check_object : sale_models.Sell,
         current_user = current_user_dep,database = database_dep):
+    try:
         check = database.query(models.Sale).filter(models.Sale.id == check_object.check_id).filter(models.Sale.owner_id == current_user.id).first()
         items = database.query(models.SaleItem).filter(models.SaleItem.sale_id == check_object.check_id).all()
         check.status = "sotilgan"   
@@ -127,7 +128,6 @@ async def sell(
         check.payment_type = check_object.payment_type
         database.commit()
         database.refresh(check)
-        
         if check_object.discount_card_id:
             card = database.query(models.DiscountCard).filter(models.DiscountCard.id == check_object.discount_card_id).first()
             if card:
@@ -169,6 +169,9 @@ async def sell(
             database.refresh(user_score)
         
         return {"message": "success"}
+    except Exception as e:
+        return {"message":"invalid data send"}
+        
     
 
 
