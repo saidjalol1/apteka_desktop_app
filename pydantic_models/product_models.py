@@ -23,9 +23,6 @@ class ProductIn(BaseModel):
     overall_price : Optional[Union[float, None]] = None
     
 
-    class Config:
-        from_attributes = True
-
 class CategoryIn(BaseModel):
     name : str
 

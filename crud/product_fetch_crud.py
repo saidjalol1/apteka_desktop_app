@@ -8,8 +8,8 @@ def get_product(db, product_id: int):
     return db.query(Product).filter(Product.id == product_id).first()
 
 #Returns Products with pagination
-def get_products(db, skip: int = 0, limit: int = 10):
-    return db.query(Product).filter(Product.overall_amount > 0).offset(skip).limit(limit).all()
+def get_products(db):
+    return db.query(Product).filter(Product.overall_amount > 0).all()
 
 #Prduct Creation
 def create(db, product:ProductIn):
@@ -18,7 +18,6 @@ def create(db, product:ProductIn):
         db_product.overall_amount = db_product.amount_in_box * db_product.amount_in_package * db_product.box
         db.add(db_product)
         db.commit()
-        db.refresh(db_product)
         return {"success":"success"}
     except Exception as e:
         print(e)

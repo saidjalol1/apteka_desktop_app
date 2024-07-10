@@ -46,10 +46,9 @@ async def welcome():
 @app.get("/home")
 async def home(
         check_id : Optional[int] = None,
-        skip: int = 0, limit: int = 10,
         current_user = current_user_dep,database = database_dep):
     
-    products = product_fetch_crud.get_products(database, skip, limit)
+    products = product_fetch_crud.get_products(database)
     user_scores = database.query(models.UserScores).filter(models.UserScores.owner_id == current_user.id).all()
     user_score = sum(score.score for score in user_scores)
     items = []
