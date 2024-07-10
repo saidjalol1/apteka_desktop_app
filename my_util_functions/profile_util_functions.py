@@ -466,7 +466,7 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
     ).group_by(
         models.Product.id, models.Product.name
     ).order_by(
-        func.sum(models.SaleItem.amount_of_box).desc() 
+        func.sum(models.SaleItem.total_sum).desc() 
     ).limit(10)
 
     
