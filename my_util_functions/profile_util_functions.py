@@ -573,15 +573,15 @@ def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth")
                                     extract('day', models.UserSalaries.date_received) <= end_date.day,
                                 )).\
                                 scalar()               
-
-        table.append({
-            "worker": i.first_name + ' ' + i.last_name,
-            "user_sale_count":user_sale_count,
-            "user_scores":user_scores,
-            "avans":avans,
-            "user_salaries":user_salaries,
-            "user_bonus":user_bonus
-        })
+        if user_sale_count > 0:
+            table.append({
+                "worker": i.first_name + ' ' + i.last_name,
+                "user_sale_count":user_sale_count,
+                "user_scores":user_scores,
+                "avans":avans,
+                "user_salaries":user_salaries,
+                "user_bonus":user_bonus
+            })
         
     return table
 
