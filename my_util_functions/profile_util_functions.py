@@ -610,8 +610,7 @@ def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth")
                                     extract('day', models.UserSalaries.date_received) <= end_date.day,
                                 )).\
                                 scalar()               
-        if user_sale_count > 0:
-            table.append({
+        table.append({
                 "worker": i.first_name + ' ' + i.last_name,
                 "user_sale_count":user_sale_count,
                 "user_scores":user_scores,
