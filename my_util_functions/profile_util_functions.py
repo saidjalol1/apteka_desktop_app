@@ -305,8 +305,10 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     overall_sum_sales_current_period = session.query(
         func.sum(models.Sale.amount)
     ).filter(and_(
-        models.Sale.date_added >= start_date,
-        models.Sale.date_added <= end_date,
+            extract('year', models.Sale.date_added) == start_date.year,
+            extract('month', models.Sale.date_added) == start_date.month,
+            extract('day', models.Sale.date_added) >= start_date.day,
+            extract('day', models.Sale.date_added) <= end_date.day,
         models.Sale.status == "sotilgan"
     )).scalar() or 0
 
@@ -320,8 +322,10 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     ).join(
         models.Product, models.SaleItem.product_id == models.Product.id
     ).filter(and_(
-        models.Sale.date_added >= start_date,
-        models.Sale.date_added <= end_date,
+            extract('year', models.Sale.date_added) == start_date.year,
+            extract('month', models.Sale.date_added) == start_date.month,
+            extract('day', models.Sale.date_added) >= start_date.day,
+            extract('day', models.Sale.date_added) <= end_date.day,
         models.Sale.status == "sotilgan"
     )).scalar() or 0
 
@@ -329,16 +333,20 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     overall_sum_salaries_current_period = session.query(
         func.sum(models.UserSalaries.amount)
     ).filter(and_(
-        models.UserSalaries.date_received >= start_date,
-        models.UserSalaries.date_received <= end_date
+            extract('year', models.UserSalaries.date_received) == start_date.year,
+            extract('month', models.UserSalaries.date_received) == start_date.month,
+            extract('day', models.UserSalaries.date_received) >= start_date.day,
+            extract('day', models.UserSalaries.date_received) <= end_date.day,
     )).scalar() or 0
 
     # Quantity of sales for the selected period
     quantity_of_sales_current_period = session.query(
         func.count(models.Sale.id)
     ).filter(and_(
-        models.Sale.date_added >= start_date,
-        models.Sale.date_added <= end_date,
+            extract('year', models.Sale.date_added) == start_date.year,
+            extract('month', models.Sale.date_added) == start_date.month,
+            extract('day', models.Sale.date_added) >= start_date.day,
+            extract('day', models.Sale.date_added) <= end_date.day,
         models.Sale.status == "sotilgan"
     )).scalar() or 0
 
@@ -346,17 +354,20 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     overall_sum_expenses_current_period = session.query(
         func.sum(models.UserExpances.amount)
     ).filter(and_(
-        models.UserExpances.date_added >= start_date,
-        models.UserExpances.date_added <= end_date,
-        models.Sale.status == "sotilgan"
+            extract('year', models.UserExpances.date_added) == start_date.year,
+            extract('month', models.UserExpances.date_added) == start_date.month,
+            extract('day', models.UserExpances.date_added) >= start_date.day,
+            extract('day', models.UserExpances.date_added) <= end_date.day,
     )).scalar() or 0
 
     # "Naqd savdo" (cash sales) for the selected period
     cash_sales_current_period = session.query(
         func.sum(models.Sale.amount)
     ).filter(and_(
-        models.Sale.date_added >= start_date,
-        models.Sale.date_added <= end_date,
+            extract('year', models.Sale.date_added) == start_date.year,
+            extract('month', models.Sale.date_added) == start_date.month,
+            extract('day', models.Sale.date_added) >= start_date.day,
+            extract('day', models.Sale.date_added) <= end_date.day,
         models.Sale.payment_type == "naqd",
         models.Sale.status == "sotilgan"
     )).scalar() or 0
@@ -365,8 +376,8 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     credit_sales_current_period = session.query(
         func.sum(models.Sale.amount)
     ).filter(and_(
-        models.Sale.date_added >= start_date,
-        models.Sale.date_added <= end_date,
+            extract('year', models.Sale.date_added) >= start_date.year,
+            extract('month', models.Sale.date_added) <= start_date.month,
         models.Sale.payment_type == "nasiya",
         models.Sale.status == "sotilgan"
     )).scalar() or 0
@@ -375,8 +386,8 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     overall_sum_sales_last_period = session.query(
         func.sum(models.Sale.amount)
     ).filter(and_(
-        models.Sale.date_added >= last_period_start_date,
-        models.Sale.date_added <= last_period_end_date,
+            extract('year', models.Sale.date_added) >= last_period_start_date.year,
+            extract('month', models.Sale.date_added) <= last_period_end_date.month,
         models.Sale.status == "sotilgan"
     )).scalar() or 0
 
@@ -390,8 +401,8 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     ).join(
         models.Product, models.SaleItem.product_id == models.Product.id
     ).filter(and_(
-        models.Sale.date_added >= last_period_start_date,
-        models.Sale.date_added <= last_period_end_date,
+            extract('year', models.Sale.date_added) >= last_period_start_date.year,
+            extract('month', models.Sale.date_added) <= last_period_end_date.month,
         models.Sale.status == "sotilgan"
     )).scalar() or 0
 
@@ -399,8 +410,8 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     quantity_of_sales_last_period = session.query(
         func.count(models.Sale.id)
     ).filter(and_(
-        models.Sale.date_added >= last_period_start_date,
-        models.Sale.date_added <= last_period_end_date,
+            extract('year', models.Sale.date_added) >= last_period_start_date.year,
+            extract('month', models.Sale.date_added) <= last_period_end_date.month,
         models.Sale.status == "sotilgan"
     )).scalar() or 0
 
@@ -408,8 +419,8 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     overall_sum_salaries_last_period = session.query(
         func.sum(models.UserSalaries.amount)
     ).filter(and_(
-        models.UserSalaries.date_received >= last_period_start_date,
-        models.UserSalaries.date_received <= last_period_end_date
+            extract('year', models.UserSalaries.date_received) >= last_period_start_date.year,
+            extract('month', models.UserSalaries.date_received) <= last_period_end_date.month,
     )).scalar() or 0
 
     # Calculate percentage changes
@@ -455,6 +466,7 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filter criteria")
 
     
+    # Query to get overall sales revenue for the selected period
     overall_sales_revenue = session.query(
         func.sum(models.Product.sale_price * models.SaleItem.amount_of_box).label('total_sales_revenue')
     ).join(
@@ -462,12 +474,16 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
     ).join(
         models.Sale, models.Sale.id == models.SaleItem.sale_id
     ).filter(
-        models.Sale.date_added >= start_date,
-        models.Sale.date_added <= end_date,
-        models.Sale.status == "sotilgan"
+        and_(
+            extract('year', models.Sale.date_added) == start_date.year,
+            extract('month', models.Sale.date_added) == start_date.month,
+            extract('day', models.Sale.date_added) >= start_date.day,
+            extract('day', models.Sale.date_added) <= end_date.day,
+            models.Sale.status == "sotilgan"
+        )
     ).scalar()
 
-    
+    # Query to get the top 10 products for the selected period
     top_10_products = session.query(
         models.Product.name,
         func.sum(models.SaleItem.amount_of_box).label('quantity_sold'),
@@ -477,13 +493,17 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
     ).join(
         models.Sale, models.Sale.id == models.SaleItem.sale_id
     ).filter(
-        models.Sale.date_added >= start_date,
-        models.Sale.date_added <= end_date,
-        models.Sale.status == "sotilgan"
+        and_(
+            extract('year', models.Sale.date_added) == start_date.year,
+            extract('month', models.Sale.date_added) == start_date.month,
+            extract('day', models.Sale.date_added) >= start_date.day,
+            extract('day', models.Sale.date_added) <= end_date.day,
+            models.Sale.status == "sotilgan"
+        )
     ).group_by(
         models.Product.id, models.Product.name
     ).order_by(
-        func.sum(models.SaleItem.total_sum).desc() 
+        func.sum(models.Product.sale_price * models.SaleItem.amount_of_box).desc()
     ).limit(10)
 
     
@@ -503,7 +523,7 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
             product_statistics.append(product_dict)
         else:
             pass
-
+    print(product_statistics)
     return product_statistics
 
 
@@ -603,9 +623,9 @@ def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth")
     return table
 
 
-def get_sales_with_details(session: Session, start_date=None, end_date=None, filter="thismonth"):
-    today = date.today()
-
+def get_sales_with_details(session, start_date=None, end_date=None, filter="thismonth"):
+    today = today_date
+    print(today.weekday())
     if start_date and end_date:
         pass
     elif filter == "today":
@@ -642,9 +662,11 @@ def get_sales_with_details(session: Session, start_date=None, end_date=None, fil
         models.UserShift, models.UserShift.id == models.User.shift_id
     ).filter(
         and_(
+            extract('year', models.Sale.date_added) == start_date.year,
+            extract('month', models.Sale.date_added) == start_date.month,
+            extract('day', models.Sale.date_added) >= start_date.day,
+            extract('day', models.Sale.date_added) <= end_date.day,
             models.Sale.status == "sotilgan",
-            models.Sale.date_added >= start_date,
-            models.Sale.date_added <= end_date
         )
     ).order_by(
         models.Sale.date_added.desc()  # Order by date added descending

@@ -128,6 +128,47 @@ async def sell(
         check.payment_type = check_object.payment_type
         database.commit()
         database.refresh(check)
+        if check_object.discount_card_id:
+            card = database.query(models.DiscountCard).filter(models.DiscountCard.id == check_object.discount_card_id).first()
+            if card:
+                if check_object.with_discount_card:
+                    if card.amount >= check_object.from_discount_card:
+                        card.amount -= check_object.from_discount_card
+                        database.commit()
+                        database.refresh(card)
+                    else:
+                        return {"message":"Kartada yetarli pul mavjud emas"}
+                else:
+                    card.amount += check_object.discount
+                    database.commit()
+
+        box = 0
+        package = 0
+        from_package = 0
+        for i in items:
+            product = database.query(models.Product).filter(models.Product.id == i.product_id).first()
+            box = product.amount_in_box *  product.amount_in_package * i.amount_of_box 
+            if i.amount_of_package:
+                package = product.amount_in_package * i.amount_of_package
+            if i.amount_from_package:
+                from_package = i.amount_from_package
+
+            drug_count = sum([box, package,from_package])
+            base_score = product.score / (product.amount_in_box * product.amount_in_package)
+            score = drug_count * base_score
+
+
+            user_score = models.UserScores(
+                score = score,
+                owner_id = current_user.id,
+                sale_item_id = i.id
+            )
+            print(user_score.score)
+            database.add(user_score)
+            database.commit()
+            database.refresh(user_score)
+
+        return {"message": "success"}
         return {"message":"success"}
     except Exception as e:
         return {"message":"invalid data send"}
@@ -270,14 +311,14 @@ async def delay_check(check_id:int, db = database_dep):
             product.box += i.amount_of_box
         db.delete(i)
         db.commit()
-    
+        
     db.delete(obj)
     db.commit()
     return {"message":"success"}
 
 
 @app.post("/token/")
-async def login(user_token : user_models.UserLogin,database = database_dep):
+async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)
