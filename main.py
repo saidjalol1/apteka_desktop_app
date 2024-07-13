@@ -103,7 +103,7 @@ async def home(
     for product in products:
         box_quantity = product.overall_amount // (product.amount_in_box * product.amount_in_package)
         package_quantity = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
-        unit_quantity = product.overall_amount % product.amount_in_package
+        unit_quantity = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
         
         product_data = product_models.ProductOut(
             id=product.id,
