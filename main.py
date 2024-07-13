@@ -86,7 +86,8 @@ async def home(
         if sale_item_in.amount_from_package:
             from_package = sale_item_in.amount_from_package
         overall_for_sale = sum([box, package,from_package])
-
+        product.overall_amount -= overall_for_sale
+        database.commit()
         discount = sum([(sale_item_in.sale_product_items.discount_price / (sale_item_in.sale_product_items.amount_in_box * sale_item_in.sale_product_items.amount_in_package)) * overall_for_sale  for sale_item_in in response_items])
         overall_discount += discount
         
@@ -97,6 +98,37 @@ async def home(
     check.amount = payment
     database.commit()
     database.refresh(check)
+     # Calculate product quantities
+    response_products = []
+    for product in products:
+        box_quantity = product.overall_amount // (product.amount_in_box * product.amount_in_package)
+        package_quantity = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
+        unit_quantity = product.overall_amount % product.amount_in_package
+        
+        product_data = product_models.ProductOut(
+            id=product.id,
+            serial_number=product.serial_number,
+            name=product.name,
+            box=product.box,
+            amount_in_box=product.amount_in_box,
+            amount_in_package=product.amount_in_package,
+            produced_location=product.produced_location,
+            expiry_date=product.expiry_date,
+            base_price=product.base_price,
+            extra_price_in_percent=product.extra_price_in_percent,
+            sale_price=product.sale_price,
+            sale_price_in_percent=product.sale_price_in_percent,
+            discount_price=product.discount_price,
+            type_id=product.type_id,
+            score=product.score,
+            overall_price=product.overall_price,
+            boxes_left=box_quantity,
+            packages_left=package_quantity,
+            units_left=unit_quantity,
+            overall_amount=product.overall_amount
+        )
+        response_products.append(product_data.dict())
+
     
     check_object = {
         "total_discount": discount,

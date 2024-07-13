@@ -21,7 +21,9 @@ class ProductIn(BaseModel):
     type_id :  Optional[Union[int, None]] = None
     score : Optional[Union[int, None]] = None
     overall_price : Optional[Union[float, None]] = None
-    
+    boxes_left : Optional[Union[int, None]] = None
+    packages_left : Optional[Union[int, None]] = None
+    units_left : Optional[Union[int, None]] = None
 
 class CategoryIn(BaseModel):
     name : str
