@@ -16,6 +16,9 @@ def create(db, product:ProductIn):
     try:
         db_product = Product(**product.model_dump())
         db_product.overall_amount = db_product.amount_in_box * db_product.amount_in_package * db_product.box
+        db_product.boxes_left = (db_product.overall_amount - (db_product.overall_amount % (db_product.amount_in_box * db_product.amount_in_package))) // (db_product.amount_in_box * db_product.amount_in_package)
+        db_product.packages_left = (db_product.overall_amount % (db_product.amount_in_box * db_product.amount_in_package)) // db_product.amount_in_package
+        db_product.units_left = (db_product.overall_amount % (db_product.amount_in_box * db_product.amount_in_package)) % db_product.amount_in_package
         db.add(db_product)
         db.commit()
         return {"success":"success"}

@@ -35,7 +35,9 @@ class Product(Base):
     overall_amount = Column(Integer, default=0)
     score = Column(Integer)
     overall_price = Column(Float)
-    
+    boxes_left = Column(Integer, default=0)
+    packages_left = Column(Integer, default=0)
+    units_left = Column(Integer, default=0)
     type_id  = Column("Category", ForeignKey('category.id'))
     
     

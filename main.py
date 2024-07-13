@@ -80,7 +80,7 @@ async def home(
         package = 0
         from_package = 0
         if sale_item_in.amount_of_box:
-            box = product.amount_in_box *  product.amount_in_package * sale_item_in.amount_of_box 
+            box = (product.amount_in_box *  product.amount_in_package) * sale_item_in.amount_of_box 
         if sale_item_in.amount_of_package:
             package = product.amount_in_package * sale_item_in.amount_of_package
         if sale_item_in.amount_from_package:
@@ -89,8 +89,6 @@ async def home(
         
         discount = sum([(sale_item_in.sale_product_items.discount_price / (sale_item_in.sale_product_items.amount_in_box * sale_item_in.sale_product_items.amount_in_package)) * overall_for_sale  for sale_item_in in response_items])
         overall_discount += discount
-        
-        product.overall_amount -= overall_for_sale
         database.commit()
     
     total = sum([ i.total_sum for i in response_items])
@@ -101,35 +99,7 @@ async def home(
     database.commit()
     database.refresh(check)
      # Calculate product quantities
-    response_products = []
-    for product in products:
-        box_quantity = product.overall_amount // (product.amount_in_box * product.amount_in_package)
-        package_quantity = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
-        unit_quantity = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
-        
-        product_data = product_models.ProductOut(
-            id=product.id,
-            serial_number=product.serial_number,
-            name=product.name,
-            box=product.box,
-            amount_in_box=product.amount_in_box,
-            amount_in_package=product.amount_in_package,
-            produced_location=product.produced_location,
-            expiry_date=product.expiry_date,
-            base_price=product.base_price,
-            extra_price_in_percent=product.extra_price_in_percent,
-            sale_price=product.sale_price,
-            sale_price_in_percent=product.sale_price_in_percent,
-            discount_price=product.discount_price,
-            type_id=product.type_id,
-            score=product.score,
-            overall_price=product.overall_price,
-            boxes_left=box_quantity,
-            packages_left=package_quantity,
-            units_left=unit_quantity,
-            overall_amount=product.overall_amount
-        )
-        response_products.append(product_data.dict())
+    
 
     
     check_object = {
@@ -208,8 +178,6 @@ async def sell(
         return {"message":"invalid data send"}
         
     
-
-
 @app.post("/cheque/")
 async def cheque():
     message = {
@@ -236,12 +204,13 @@ async def sale(sale_item_in: sale_models.ReturnIn,current_user = current_user_de
         overall_for_sale = sum([box, package,from_package])
         if product.overall_amount >= overall_for_sale:
             product.overall_amount += sum([box, package,from_package])
-            product.box = product.overall_amount // (product.amount_in_box * product.amount_in_package)
+            product.boxes_left = (product.overall_amount - (product.overall_amount % (product.amount_in_box * product.amount_in_package))) // (product.amount_in_box * product.amount_in_package)
+            product.packages_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
+            product.units_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
+            product.box = product.boxes_left
+            database.commit()
         else:
             return {"message":"Omborda Mahsulot Yetarli emas"}
-        print(box)
-        print(package)
-        print(from_package)
     else:
         return {"message": "Mahsulot topilmadi"}
                             
@@ -266,9 +235,11 @@ async def sale(return_item_id : int,current_user = current_user_dep,database = d
         if item.amount_from_package:
             from_package = item.amount_from_package
         product.overall_amount -= sum([box, package,from_package])
-        print([box, package,from_package])
-        if box:
-            product.box -= item.amount_of_box
+        product.boxes_left = (product.overall_amount - (product.overall_amount % (product.amount_in_box * product.amount_in_package))) // (product.amount_in_box * product.amount_in_package)
+        product.packages_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
+        product.units_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
+        product.box = product.boxes_left
+        database.commit()
         database.delete(item)
         database.commit()
     else:
@@ -282,7 +253,7 @@ async def home(
         skip: int = 0, limit: int = 10,
         current_user = current_user_dep,database = database_dep):
     
-    products = product_fetch_crud.get_products(database, skip, limit)
+    products = product_fetch_crud.get_products(database)
     items = []
     if return_id:
        check =  database.query(models.Return).filter(models.Return.id == return_id).first()
@@ -340,6 +311,11 @@ async def delay_check(check_id:int, db = database_dep):
         if i.amount_from_package:
             from_package = i.amount_from_package
         product.overall_amount += sum([box, package,from_package])
+        product.boxes_left = (product.overall_amount - (product.overall_amount % (product.amount_in_box * product.amount_in_package))) // (product.amount_in_box * product.amount_in_package)
+        product.packages_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
+        product.units_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
+        product.box = product.boxes_left
+        db.commit()
         print([box, package,from_package])
         if box:
             product.box += i.amount_of_box
@@ -352,7 +328,7 @@ async def delay_check(check_id:int, db = database_dep):
 
 
 @app.post("/token/")
-async def login(user_token :  user_models.UserLogin,database = database_dep):
+async def login(user_token :  OAuth2PasswordRequestForm = Depends(),database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)

@@ -102,7 +102,7 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
         package = 0
         from_package = 0
         if sale_item_in.amount_of_box:
-            box = product.amount_in_box *  product.amount_in_package * sale_item_in.amount_of_box 
+            box = (product.amount_in_box *  product.amount_in_package) * sale_item_in.amount_of_box 
         if sale_item_in.amount_of_package:
             package = product.amount_in_package * sale_item_in.amount_of_package
         if sale_item_in.amount_from_package:
@@ -110,12 +110,13 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
         overall_for_sale = sum([box, package,from_package])
         if product.overall_amount >= overall_for_sale:
             product.overall_amount -= sum([box, package,from_package])
-            product.box = product.overall_amount // (product.amount_in_box * product.amount_in_package)
+            product.boxes_left = (product.overall_amount - (product.overall_amount % (product.amount_in_box * product.amount_in_package))) // (product.amount_in_box * product.amount_in_package)
+            product.packages_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
+            product.units_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
+            product.box = product.boxes_left
+            database.commit()
         else:
             return {"message":"Omborda Mahsulot Yetarli emas"}
-        print(box)
-        print(package)
-        print(from_package)
     else:
         return {"message": "Mahsulot topilmadi"}
                             
