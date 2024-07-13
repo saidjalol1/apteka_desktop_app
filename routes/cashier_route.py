@@ -142,6 +142,10 @@ async def sale(sale_item_id : int,current_user = current_user_dep,database = dat
         if item.amount_from_package:
             from_package = item.amount_from_package
         product.overall_amount += sum([box, package,from_package])
+        product.boxes_left = (product.overall_amount - (product.overall_amount % (product.amount_in_box * product.amount_in_package))) // (product.amount_in_box * product.amount_in_package)
+        product.packages_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
+        product.units_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
+        product.box = product.boxes_left
         print([box, package,from_package])
         if box:
             product.box += item.amount_of_box
