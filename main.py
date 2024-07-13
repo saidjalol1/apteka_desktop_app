@@ -151,7 +151,7 @@ async def sell(
         from_package = 0
         for i in items:
             product = database.query(models.Product).filter(models.Product.id == i.product_id).first()
-            box = product.amount_in_box *  product.amount_in_package * i.amount_of_box 
+            box = (product.amount_in_box *  product.amount_in_package) * sale_item_in.amount_of_box 
             if i.amount_of_package:
                 package = product.amount_in_package * i.amount_of_package
             if i.amount_from_package:
@@ -196,7 +196,7 @@ async def sale(sale_item_in: sale_models.ReturnIn,current_user = current_user_de
         package = 0
         from_package = 0
         if sale_item_in.amount_of_box:
-            box = product.amount_in_box *  product.amount_in_package * sale_item_in.amount_of_box 
+            box = (product.amount_in_box *  product.amount_in_package) * sale_item_in.amount_of_box 
         if sale_item_in.amount_of_package:
             package = product.amount_in_package * sale_item_in.amount_of_package
         if sale_item_in.amount_from_package:
@@ -229,7 +229,7 @@ async def sale(return_item_id : int,current_user = current_user_dep,database = d
         package = 0
         from_package = 0
         if item.amount_of_box:
-            box = product.amount_in_box *  product.amount_in_package * item.amount_of_box 
+            box = (product.amount_in_box *  product.amount_in_package) * item.amount_of_box 
         if item.amount_of_package:
             package = product.amount_in_package * item.amount_of_package
         if item.amount_from_package:
@@ -305,7 +305,7 @@ async def delay_check(check_id:int, db = database_dep):
         package = 0
         from_package = 0
         if i.amount_of_box:
-            box = product.amount_in_box *  product.amount_in_package * i.amount_of_box 
+            box = (product.amount_in_box *  product.amount_in_package) * i.amount_of_box 
         if i.amount_of_package:
             package = product.amount_in_package * i.amount_of_package
         if i.amount_from_package:

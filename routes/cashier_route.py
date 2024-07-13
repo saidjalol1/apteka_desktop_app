@@ -136,7 +136,7 @@ async def sale(sale_item_id : int,current_user = current_user_dep,database = dat
         package = 0
         from_package = 0
         if item.amount_of_box:
-            box = product.amount_in_box *  product.amount_in_package * item.amount_of_box 
+            box = (product.amount_in_box *  product.amount_in_package) * item.amount_of_box 
         if item.amount_of_package:
             package = product.amount_in_package * item.amount_of_package
         if item.amount_from_package:
