@@ -86,11 +86,13 @@ async def home(
         if sale_item_in.amount_from_package:
             from_package = sale_item_in.amount_from_package
         overall_for_sale = sum([box, package,from_package])
-        product.overall_amount -= overall_for_sale
-        database.commit()
+        
         discount = sum([(sale_item_in.sale_product_items.discount_price / (sale_item_in.sale_product_items.amount_in_box * sale_item_in.sale_product_items.amount_in_package)) * overall_for_sale  for sale_item_in in response_items])
         overall_discount += discount
         
+    product.overall_amount -= overall_for_sale
+    database.commit()
+    
     total = sum([ i.total_sum for i in response_items])
     payment = total - discount
     
