@@ -107,9 +107,9 @@ def today_user_score(user_id, db):
 
 
 def user_salaries(user_id, db, date=None, this_month=None, start_date=None, end_date= None):
-    start_datetime = datetime.combine(start_date, time.min)
+    start_datetime = datetime.datetime.combine(start_date, time.min)
     # Convert end_date to a datetime at the end of the day
-    end_datetime = datetime.combine(end_date, time.max)
+    end_datetime = datetime.datetime.combine(end_date, time.max)
     if date:
         user_salaries = db.query(models.UserSalaries)\
             .filter(models.UserSalaries.receiver_id == user_id)\
