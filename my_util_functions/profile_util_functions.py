@@ -1,14 +1,14 @@
 import os
 import qrcode
 import datetime
-from datetime import date, timedelta
+from datetime import date, timedelta, time
 from fastapi import HTTPException, status
 from database_models import models
 from sqlalchemy import func, and_, extract
 from sqlalchemy.orm import Session, joinedload
 from database_config.database_conf import  current_time
 from dateutil.relativedelta import relativedelta
-
+from sqlalchemy import case
 
 today_date = current_time().date()
 first_day_of_current_month = today_date.replace(day=1)
@@ -25,30 +25,34 @@ def get_current_quarter_start_date():
 
 
 def user_score_retrieve(user_id, db, date=None, this_month=None, start_date=None, end_date=None):
+    start_datetime = datetime.combine(start_date, time.min)
+    # Convert end_date to a datetime at the end of the day
+    end_datetime = datetime.combine(end_date, time.max)
     if start_date and end_date:
-        query = db.query(models.UserScores)\
-                .options(joinedload(models.UserScores.item))\
-                .filter(models.UserScores.owner_id == user_id).filter(
-            models.UserScores.date_scored >= start_date,
-            models.UserScores.date_scored <= end_date
-        ).all()
+         query = db.query(models.UserScores)\
+              .options(joinedload(models.UserScores.item))\
+              .filter(
+                  models.UserScores.owner_id == user_id,
+                  models.UserScores.date_scored >= start_datetime,
+                  models.UserScores.date_scored <= end_datetime
+              ).all()
 
     elif this_month:
         query = db.query(models.UserScores)\
                 .options(joinedload(models.UserScores.item))\
-                .filter(models.UserScores.owner_id == user_id).filter(
+                .filter(models.UserScores.owner_id == user_id).filter(and_(
             extract('year', models.UserScores.date_scored) == this_month.year,
             extract('month', models.UserScores.date_scored) == this_month.month,
-        ).all()
+        )).all()
 
     elif date:
         query =  db.query(models.UserScores)\
                 .options(joinedload(models.UserScores.item))\
-                .filter(models.UserScores.owner_id == user_id).filter(
+                .filter(models.UserScores.owner_id == user_id).filter(and_(
                     extract('year', models.UserScores.date_scored) == date.year,
                     extract('month', models.UserScores.date_scored) == date.month,
                     extract('day', models.UserScores.date_scored) == date.day
-                ).all()
+                )).all()
     else:
         query = db.query(models.UserScores)\
                 .options(joinedload(models.UserScores.item))\
@@ -94,22 +98,27 @@ def user_score_retrieve(user_id, db, date=None, this_month=None, start_date=None
 
 def today_user_score(user_id, db):
     scores = db.query(models.UserScores)\
-            .options(joinedload(models.UserScores.item))\
-            .filter(models.UserScores.owner_id == user_id).filter(and_(\
-                                    extract('year', models.Sale.date_added) == today_date.year,
-                                    extract('month', models.Sale.date_added) == today_date.month,
-                                    extract('day', models.Sale.date_added) == today_date.day
-                                )).all()
+        .options(joinedload(models.UserScores.item))\
+        .filter(models.UserScores.owner_id == user_id).filter(and_(
+            extract('year', models.UserScores.date_scored) == today_date.year,
+            extract('month', models.UserScores.date_scored) == today_date.month,
+            extract('day', models.UserScores.date_scored) == today_date.day)).all()
     return scores
 
 
 def user_salaries(user_id, db, date=None, this_month=None, start_date=None, end_date= None):
+    start_datetime = datetime.combine(start_date, time.min)
+    # Convert end_date to a datetime at the end of the day
+    end_datetime = datetime.combine(end_date, time.max)
     if date:
-        user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).filter(and_(\
-                                    extract('year', models.UserSalaries.date_received) == date.year,
-                                    extract('month', models.UserSalaries.date_received) == date.month,
-                                    extract('day', models.UserSalaries.date_received) == date.day
-                                )).all()
+        user_salaries = db.query(models.UserSalaries)\
+            .filter(models.UserSalaries.receiver_id == user_id)\
+                .options(joinedload(models.UserSalaries.giver))\
+                    .filter(\
+                        and_(
+                            extract('year', models.UserSalaries.date_received) == date.year,
+                            extract('month', models.UserSalaries.date_received) == date.month,
+                            extract('day', models.UserSalaries.date_received) == date.day)).all()
     elif this_month:
         print(this_month)
         user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).filter(and_(\
@@ -118,9 +127,17 @@ def user_salaries(user_id, db, date=None, this_month=None, start_date=None, end_
                                 )).all()
     
     elif start_date and end_date:
-        user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).filter(models.UserSalaries.date_received >= start_date,models.UserSalaries.date_received <= end_date).options(joinedload(models.UserSalaries.giver)).all()
+        user_salaries = db.query(models.UserSalaries)\
+            .filter(models.UserSalaries.receiver_id == user_id)\
+                .filter(\
+                    models.UserSalaries.date_received >= start_datetime,
+                    models.UserSalaries.date_received <= end_datetime)\
+                        .options(joinedload(models.UserSalaries.giver)).all()
     else:
-        user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).all()
+        user_salaries = db.query(models.UserSalaries)\
+            .filter(\
+                models.UserSalaries.receiver_id == user_id)\
+                    .options(joinedload(models.UserSalaries.giver)).all()
         
     salaries_list = []
     for salary in user_salaries:
@@ -166,21 +183,21 @@ def sale_statistics(session):
         models.Sale.status == "sotilgan"
     )).scalar() or 0
 
-    # Overall profit for the current month with status "sotilgan"
-    overall_profit_current_month = session.query(
-        func.sum((models.Product.sale_price - models.Product.base_price) * models.SaleItem.amount_of_box)
-    ).select_from(
-        models.Sale
-    ).join(
-        models.SaleItem, models.SaleItem.sale_id == models.Sale.id
-    ).join(
-        models.Product, models.SaleItem.product_id == models.Product.id
-    ).filter(and_(
-        extract('year', models.Sale.date_added) == today_date.year,
-        extract('month', models.Sale.date_added) == today_date.month,
-        models.Sale.status == "sotilgan"
-    )).scalar() or 0
-
+    
+    current_month_sale_items = session.query(models.SaleItem)\
+        .join(models.Sale, models.Sale.id == models.SaleItem.sale_id)\
+            .filter(
+                and_(extract('year', models.Sale.date_added) == today_date.year,
+                extract('month', models.Sale.date_added) == today_date.month,
+                models.Sale.status == "sotilgan")).all()
+            
+    last_month_sale_items = session.query(models.SaleItem)\
+        .join(models.Sale, models.Sale.id == models.SaleItem.sale_id)\
+            .filter(
+                and_(extract('year', models.Sale.date_added) == today_date.year,
+                extract('month', models.Sale.date_added) == today_date.month - 1,
+                models.Sale.status == "sotilgan")).all()
+    
     # Sum of salaries received by users in the current month
     overall_sum_salaries_current_month = session.query(
         func.sum(models.UserSalaries.amount)
@@ -215,20 +232,6 @@ def sale_statistics(session):
         models.Sale.status == "sotilgan"
     )).scalar() or 0
 
-    # Overall profit for the last month with status "sotilgan"
-    overall_profit_last_month = session.query(
-        func.sum((models.Product.sale_price - models.Product.base_price) * models.SaleItem.amount_of_box)
-    ).select_from(
-        models.Sale
-    ).join(
-        models.SaleItem, models.SaleItem.sale_id == models.Sale.id
-    ).join(
-        models.Product, models.SaleItem.product_id == models.Product.id
-    ).filter(and_(
-        extract('year', models.Sale.date_added) == today_date.year,
-        extract('month', models.Sale.date_added) == today_date.month - 1,
-        models.Sale.status == "sotilgan"
-    )).scalar() or 0
 
     # Quantity of sales for the last month with status "sotilgan"
     quantity_of_sales_last_month = session.query(
@@ -246,6 +249,20 @@ def sale_statistics(session):
         extract('year', models.UserSalaries.date_received) == today_date.year,
         extract('month', models.UserSalaries.date_received) == today_date.month - 1
     )).scalar() or 0
+
+    #Overal Profit for current month
+    overall_profit_current_month = sum((i.sale_product_items.sale_price - i.sale_product_items.base_price) / (i.sale_product_items.amount_in_box * i.sale_product_items.amount_in_package) * i.overall_for_sale for i in current_month_sale_items)
+    if overall_profit_current_month:
+        pass
+    else:
+        overall_profit_current_month = 0
+    
+    #Overal Profit for last month
+    overall_profit_last_month = sum((i.sale_product_items.sale_price - i.sale_product_items.base_price) / (i.sale_product_items.amount_in_box * i.sale_product_items.amount_in_package) * i.overall_for_sale for i in last_month_sale_items)
+    if overall_profit_last_month:
+        pass
+    else:
+        overall_profit_last_month = 0
 
     # Sales percentage change
     sales_percent_change = calculate_percent_change(overall_sum_sales_current_month, overall_sum_sales_last_month)
@@ -446,10 +463,12 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     return context
 
 
-def top_10_products_statistics(session, start_date=None, end_date=None, filter="thismonth"):
-    today = current_time().date()
+def top_10_products_statistics(session: Session, start_date=None, end_date=None, filter="thismonth"):
+    today = date.today()
+    
     if start_date and end_date:
-        pass
+        start_date = start_date
+        end_date = end_date
     elif filter == "today":
         start_date = today
         end_date = today
@@ -464,54 +483,46 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
         end_date = today
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filter criteria")
-
     
-    # Query to get overall sales revenue for the selected period
-    overall_sales_revenue = session.query(
-        func.sum(models.Product.sale_price * models.SaleItem.amount_of_box).label('total_sales_revenue')
-    ).join(
-        models.SaleItem, models.SaleItem.product_id == models.Product.id
-    ).join(
-        models.Sale, models.Sale.id == models.SaleItem.sale_id
-    ).filter(
-        and_(
-            extract('year', models.Sale.date_added) == start_date.year,
-            extract('month', models.Sale.date_added) == start_date.month,
-            extract('day', models.Sale.date_added) >= start_date.day,
-            extract('day', models.Sale.date_added) <= end_date.day,
-            models.Sale.status == "sotilgan"
-        )
-    ).scalar()
+    # Calculate the overall sales revenue for the selected period
+    start_datetime = datetime.datetime.combine(start_date, time.min)
+    # Convert end_date to a datetime at the end of the day
+    end_datetime = datetime.datetime.combine(end_date, time.max)
+    revenue_sale_items = session.query(models.SaleItem)\
+        .join(models.Sale, models.Sale.id == models.SaleItem.sale_id)\
+            .filter(
+                models.Sale.date_added >= start_datetime,
+                models.Sale.date_added <= end_datetime,
+                models.Sale.status == "sotilgan").all()
+    overall_sales_revenue = sum((i.sale_product_items.sale_price / (i.sale_product_items.amount_in_box * i.sale_product_items.amount_in_package)) * i.overall_for_sale for i in revenue_sale_items)
 
     # Query to get the top 10 products for the selected period
+    products = []
+    session.query(models.SaleItem).filter()
     top_10_products = session.query(
         models.Product.name,
-        func.sum(models.SaleItem.amount_of_box).label('quantity_sold'),
-        func.sum(models.Product.sale_price * models.SaleItem.amount_of_box).label('total_sales')
+        func.sum(models.SaleItem.overall_for_sale).label('quantity_sold'),
+        func.sum(
+            (models.Product.sale_price / (models.Product.amount_in_box * models.Product.amount_in_package)) * models.SaleItem.overall_for_sale
+        ).label('total_sales')
     ).join(
         models.SaleItem, models.SaleItem.product_id == models.Product.id
     ).join(
         models.Sale, models.Sale.id == models.SaleItem.sale_id
     ).filter(
-        and_(
-            extract('year', models.Sale.date_added) == start_date.year,
-            extract('month', models.Sale.date_added) == start_date.month,
-            extract('day', models.Sale.date_added) >= start_date.day,
-            extract('day', models.Sale.date_added) <= end_date.day,
+            models.Sale.date_added >= start_datetime,
+            models.Sale.date_added <= end_datetime,
             models.Sale.status == "sotilgan"
-        )
     ).group_by(
         models.Product.id, models.Product.name
     ).order_by(
-        func.sum(models.Product.sale_price * models.SaleItem.amount_of_box).desc()
-    ).limit(10)
+        func.sum(
+            (models.Product.sale_price / (models.Product.amount_in_box * models.Product.amount_in_package)) * models.SaleItem.overall_for_sale
+        ).desc()
+    ).limit(10).all()
 
-    
-    top_10_products_stats = top_10_products.all()
-
-    
     product_statistics = []
-    for product in top_10_products_stats:
+    for product in top_10_products:
         if product.quantity_sold > 0 and product.total_sales > 0:
             product_percentage_of_sales_revenue = (product.total_sales / overall_sales_revenue) * 100 if overall_sales_revenue else 0
             product_dict = {
@@ -521,9 +532,7 @@ def top_10_products_statistics(session, start_date=None, end_date=None, filter="
                 'percentage_of_overall_sales_revenue': round(product_percentage_of_sales_revenue),
             }
             product_statistics.append(product_dict)
-        else:
-            pass
-    print(product_statistics)
+
     return product_statistics
 
 

@@ -56,7 +56,7 @@ class SaleItem(Base):
     total_sum = Column(Float)
     product_id = Column("Product", ForeignKey('products.id'))
     sale_id = Column("Sale", ForeignKey('sale.id'))
-    
+    overall_for_sale = Column(Integer)
     sale_product_items = relationship("Product", back_populates="sale_product")
     sale = relationship("Sale", back_populates="items")
     user_scores = relationship("UserScores", back_populates="item")

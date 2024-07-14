@@ -108,6 +108,7 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
         if sale_item_in.amount_from_package:
             from_package = sale_item_in.amount_from_package
         overall_for_sale = sum([box, package,from_package])
+        sale_item.overall_for_sale = overall_for_sale
         if product.overall_amount >= overall_for_sale:
             product.overall_amount -= sum([box, package,from_package])
             product.boxes_left = (product.overall_amount - (product.overall_amount % (product.amount_in_box * product.amount_in_package))) // (product.amount_in_box * product.amount_in_package)

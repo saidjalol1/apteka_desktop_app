@@ -151,7 +151,7 @@ async def sell(
         from_package = 0
         for i in items:
             product = database.query(models.Product).filter(models.Product.id == i.product_id).first()
-            box = (product.amount_in_box *  product.amount_in_package) * sale_item_in.amount_of_box 
+            box = (product.amount_in_box *  product.amount_in_package) * i.amount_of_box 
             if i.amount_of_package:
                 package = product.amount_in_package * i.amount_of_package
             if i.amount_from_package:
@@ -173,9 +173,8 @@ async def sell(
             database.refresh(user_score)
 
         return {"message": "success"}
-        return {"message":"success"}
     except Exception as e:
-        return {"message":"invalid data send"}
+        return {"message":e}
         
     
 @app.post("/cheque/")
@@ -328,7 +327,7 @@ async def delay_check(check_id:int, db = database_dep):
 
 
 @app.post("/token/")
-async def login(user_token : user_models.UserLogin,database = database_dep):
+async def login(user_token :  user_models.UserLogin,database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)
