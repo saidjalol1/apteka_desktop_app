@@ -25,11 +25,12 @@ def get_current_quarter_start_date():
 
 
 def user_score_retrieve(user_id, db, date=None, this_month=None, start_date=None, end_date=None):
-    start_datetime = datetime.combine(start_date, time.min)
-    # Convert end_date to a datetime at the end of the day
-    end_datetime = datetime.combine(end_date, time.max)
+    
     if start_date and end_date:
-         query = db.query(models.UserScores)\
+        start_datetime = datetime.datetime.combine(start_date, time.min)
+        # Convert end_date to a datetime at the end of the day
+        end_datetime = datetime.datetime.combine(end_date, time.max)
+        query = db.query(models.UserScores)\
               .options(joinedload(models.UserScores.item))\
               .filter(
                   models.UserScores.owner_id == user_id,
