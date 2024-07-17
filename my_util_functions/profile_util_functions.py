@@ -119,7 +119,6 @@ def user_salaries(user_id, db, date=None, this_month=None, start_date=None, end_
                             extract('month', models.UserSalaries.date_received) == date.month,
                             extract('day', models.UserSalaries.date_received) == date.day)).all()
     elif this_month:
-        print(this_month)
         user_salaries = db.query(models.UserSalaries).filter(models.UserSalaries.receiver_id == user_id).options(joinedload(models.UserSalaries.giver)).filter(and_(\
                                     extract('year', models.UserSalaries.date_received) == this_month.year,
                                     extract('month', models.UserSalaries.date_received) == this_month.month,
