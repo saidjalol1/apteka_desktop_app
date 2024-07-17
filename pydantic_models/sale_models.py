@@ -83,3 +83,9 @@ class DiscountCardIn(BaseModel):
 class DiscountCardOut(DiscountCardIn):
     id : int
     qr_code_image : str
+    
+
+class TableData(BaseModel):
+    headers: list[str]
+    rows: list[list[str]]
+    today: str

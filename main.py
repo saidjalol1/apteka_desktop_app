@@ -1,3 +1,5 @@
+import os
+import random
 from datetime import timedelta, datetime
 from typing import Annotated, Optional
 from sqlalchemy import extract
@@ -13,7 +15,7 @@ from pydantic_models import user_models, salary_models, product_models, sale_mod
 from routes import cashier_route, admin_routes
 from database_config.database_conf import engine, get_db
 from fastapi.middleware.cors import CORSMiddleware
-
+from my_util_functions.profile_util_functions import create_pdf, get_desktop_path
 
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
@@ -324,6 +326,20 @@ async def delay_check(check_id:int, db = database_dep):
     db.delete(obj)
     db.commit()
     return {"message":"success"}
+
+
+@app.post("/generate_pdf")
+async def generate_pdf(table_data: sale_models.TableData):
+    desktop_path = get_desktop_path()
+    print(desktop_path)
+    pdf_path = os.path.join(desktop_path, f"{table_data.today}-{random.randint(0, 10000)}.pdf")
+    print(pdf_path)
+    try:
+        create_pdf(table_data, pdf_path)
+        return {"message": "PDF generated successfully", "file_path": pdf_path}
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/token/")

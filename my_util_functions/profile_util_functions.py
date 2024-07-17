@@ -9,6 +9,9 @@ from sqlalchemy.orm import Session, joinedload
 from database_config.database_conf import  current_time
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import case
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
 
 today_date = current_time().date()
 first_day_of_current_month = today_date.replace(day=1)
@@ -716,6 +719,7 @@ def save_logo(logo_data: bytes, filename: str) -> str:
 
     return logo_path
 
+
 def generate_qr_code(data: str, path: str):
     qr = qrcode.QRCode(
         version=1,
@@ -727,3 +731,32 @@ def generate_qr_code(data: str, path: str):
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     img.save(path)
+    
+  
+
+    
+def get_desktop_path():
+    if os.name == 'nt':
+        return os.path.join(os.environ['USERPROFILE'], 'Documents')
+    else:
+        return os.path.join(os.path.expanduser('~'), 'Desktop')
+
+
+def create_pdf(table_data, file_path: str):
+    doc = SimpleDocTemplate(file_path, pagesize=letter)
+    elements = []
+
+    data = [table_data.headers] + table_data.rows
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightcyan),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+
+    elements.append(table)
+    doc.build(elements)
