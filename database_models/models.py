@@ -93,7 +93,7 @@ class Sale(Base):
     __tablename__ = "sale"
     
     id = Column(Integer, primary_key=True)
-    amount = Column(Integer)
+    amount = Column(Float)
     date_added = Column(DateTime, default=current_time)
     status = Column(String)
     person = Column(String)

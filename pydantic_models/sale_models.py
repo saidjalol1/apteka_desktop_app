@@ -36,7 +36,7 @@ class SaleItemOut(SaleItemIn):
 
 class CheckOut(BaseModel):
     id: int
-    amount : int
+    amount : float
     status : str
 
     class Config:
