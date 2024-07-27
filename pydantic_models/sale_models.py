@@ -65,6 +65,7 @@ class ResponceReturn(BaseModel):
     class Config:
         from_attributes = True
     
+   
 class CheckLayout(BaseModel):
     name : str
     logo : Optional[bytes]
@@ -73,7 +74,19 @@ class CheckLayout(BaseModel):
     image : str
     shift_id : int
     
-
+    
+class CheckLayoutOut(BaseModel):
+    name : str
+    phone : str
+    address : str
+    image : str
+    shift_id : int
+    
+    
+    class Config:
+        from_attributes = True
+        
+        
 class DiscountCardIn(BaseModel):
     number : str
     amount : float

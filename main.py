@@ -342,8 +342,19 @@ async def generate_pdf(table_data: sale_models.TableData):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+@app.get("/check_layout", response_model=sale_models.CheckLayoutOut)
+async def get_check(current_user = current_user_dep,database = database_dep):
+    try:
+        layout = database.query(models.CheckLayout).filter(models.CheckLayout.shift_id == current_user.shift_id).first()
+        return layout
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/token/")
-async def login(user_token :  user_models.UserLogin,database = database_dep):
+async def login(user_token : user_models.UserLogin,database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)

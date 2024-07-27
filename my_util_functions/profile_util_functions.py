@@ -706,18 +706,14 @@ def get_sales_with_details(session, start_date=None, end_date=None, filter="this
     return sales_statistics
 
 
-def save_logo(logo_data: bytes, filename: str) -> str:
-    upload_folder = os.path.join(os.getcwd(), "images")
+STATIC_DIR = "static/images"
+os.makedirs(STATIC_DIR, exist_ok=True)
 
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-
-    logo_path = os.path.join(upload_folder, filename)
-
+def save_logo(logo_data: bytes, logo_filename: str) -> str:
+    logo_path = os.path.join(STATIC_DIR, logo_filename)
     with open(logo_path, "wb") as f:
         f.write(logo_data)
-
-    return logo_path
+    return f"/static/images/{logo_filename}"
 
 
 def generate_qr_code(data: str, path: str):
