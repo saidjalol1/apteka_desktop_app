@@ -344,13 +344,13 @@ async def generate_pdf(table_data: sale_models.TableData):
 
 
 
-@app.get("/check_layout", response_model=sale_models.CheckLayoutOut)
+@app.get("/check_layout", response_model=user_models.CheckLayoutOut)
 async def get_check(request: Request, 
                     current_user =  current_user_dep,
                     database = database_dep):
     try:
         layout: Optional[models.CheckLayout] = (
-            database.query(models.CheckLayout)
+            database.query(models.CheckLayout).options(joinedload(models.CheckLayout.check_shift))\
             .filter(models.CheckLayout.shift_id == current_user.shift_id)
             .order_by(models.CheckLayout.id.desc())
             .first()

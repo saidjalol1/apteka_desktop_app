@@ -80,7 +80,7 @@ class CheckLayoutOut(BaseModel):
     phone : str
     address : str
     image : str
-    shift_id : int
+    shift : int
     
     
     class Config:

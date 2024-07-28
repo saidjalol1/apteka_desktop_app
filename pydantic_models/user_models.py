@@ -4,6 +4,9 @@ from pydantic import BaseModel
 from .sale_models import SaleItemOut
 
 
+
+
+
 class User(BaseModel):
     id: Union[int, None]
     username : Union[str, None]
@@ -71,3 +74,15 @@ class UserOut(BaseModel):
     id : int
     first_name : str
     last_name : str
+    
+class CheckLayoutOut(BaseModel):
+    name : str
+    phone : str
+    address : str
+    image : str
+    check_shift : UserShiftOut
+    shift_id : int
+    
+    
+    class Config:
+        from_attributes = True
