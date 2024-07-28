@@ -5,12 +5,12 @@ from typing import Annotated, Optional
 from sqlalchemy import extract
 from sqlalchemy.orm import Session, joinedload
 from fastapi.security import  OAuth2PasswordRequestForm
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.staticfiles import StaticFiles
 
 from database_models import models
 from crud import product_fetch_crud
 from auth import auth_main, password, token
-
 from pydantic_models import user_models, salary_models, product_models, sale_models
 from routes import cashier_route, admin_routes
 from database_config.database_conf import engine, get_db
@@ -37,6 +37,7 @@ app.add_middleware(
 
 app.include_router(cashier_route.app)
 app.include_router(admin_routes.app)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 models.Base.metadata.create_all(bind=engine)
 
 
@@ -344,17 +345,26 @@ async def generate_pdf(table_data: sale_models.TableData):
 
 
 @app.get("/check_layout", response_model=sale_models.CheckLayoutOut)
-async def get_check(current_user = current_user_dep,database = database_dep):
+async def get_check(request: Request, 
+                    current_user =  current_user_dep,
+                    database = database_dep):
     try:
-        layout = database.query(models.CheckLayout).filter(models.CheckLayout.shift_id == current_user.shift_id).first()
+        layout: Optional[models.CheckLayout] = (
+            database.query(models.CheckLayout)
+            .filter(models.CheckLayout.shift_id == current_user.shift_id)
+            .order_by(models.CheckLayout.id.desc())
+            .first()
+        )
+        if layout is None:
+            raise HTTPException(status_code=404, detail="Check layout not found")
+        
         return layout
     except Exception as e:
-        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/token/")
-async def login(user_token : user_models.UserLogin,database = database_dep):
+async def login(user_token : OAuth2PasswordRequestForm = Depends(),database = database_dep):
     try:
         user = auth_main.authenticate_user(user_token.username,user_token.password, database)
         print(user)
