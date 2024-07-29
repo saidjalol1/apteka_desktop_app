@@ -48,7 +48,9 @@ class Token(BaseModel):
     class Config:
         from_attributes = True
     
-    
+
+class QRData(BaseModel):
+    data: str 
     
 
 # @app.put("/product/edit")

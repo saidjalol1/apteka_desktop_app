@@ -1,13 +1,14 @@
 import os
 import random
+import serial
 from datetime import timedelta, datetime
 from typing import Annotated, Optional
 from sqlalchemy import extract
 from sqlalchemy.orm import Session, joinedload
 from fastapi.security import  OAuth2PasswordRequestForm
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-
+from fastapi.responses import JSONResponse
 from database_models import models
 from crud import product_fetch_crud
 from auth import auth_main, password, token
@@ -16,7 +17,12 @@ from routes import cashier_route, admin_routes
 from database_config.database_conf import engine, get_db
 from fastapi.middleware.cors import CORSMiddleware
 from my_util_functions.profile_util_functions import create_pdf, get_desktop_path
+import keyboard
+import threading
 
+from threading import Lock
+
+import websockets
 database_dep : Session = Depends(get_db)
 current_user_dep : user_models.User = Depends(auth_main.get_current_user)
 current_month = datetime.now().month
@@ -24,6 +30,7 @@ current_year = datetime.now().year
 
 
 app = FastAPI()
+
 
 
 app.add_middleware(
@@ -178,15 +185,7 @@ async def sell(
         return {"message": "success"}
     except Exception as e:
         return {"message":e}
-        
     
-@app.post("/cheque/")
-async def cheque():
-    message = {
-        "message": "check_chiqarildi"
-    }
-    print(message)
-    return message
 
     
 @app.post("/remove_from_check/")
@@ -318,9 +317,6 @@ async def delay_check(check_id:int, db = database_dep):
         product.units_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
         product.box = product.boxes_left
         db.commit()
-        print([box, package,from_package])
-        if box:
-            product.box += i.amount_of_box
         db.delete(i)
         db.commit()
         
@@ -374,3 +370,64 @@ async def login(user_token : user_models.UserLogin,database = database_dep):
         return {"access_token": created_token, "token_type": "bearer", "is_admin":user.is_admin}
     except Exception as e:
         return {"error": e}
+
+
+
+file_path = "scanned_data.txt"
+capture_thread = None
+capture_active = False
+capture_lock = threading.Lock()
+
+def on_scan_event(event):
+    global capture_active
+    if capture_active and event.event_type == 'down':
+        with open(file_path, 'a') as file:
+            file.write(event.name)
+            file.write('\n')  # Add a new line after each scan
+
+def start_capture():
+    global capture_active
+    with capture_lock:
+        capture_active = True
+    keyboard.on_press(on_scan_event)
+    keyboard.wait('esc')
+
+def stop_capture():
+    global capture_active
+    with capture_lock:
+        capture_active = False
+    keyboard.unhook_all()  # Unhook all keyboard events
+
+@app.post("/start_capture")
+def start_capture_endpoint(background_tasks: BackgroundTasks):
+    global capture_thread
+    if capture_thread is None or not capture_thread.is_alive():
+        capture_thread = threading.Thread(target=start_capture)
+        capture_thread.start()
+    return {"message": "QR code capture started"}
+
+@app.post("/stop_capture")
+def stop_capture_endpoint():
+    stop_capture()
+    return {"message": "QR code capture stopped"}
+
+@app.get("/get_scanned_data")
+def get_scanned_data():
+    if not os.path.exists(file_path):
+        return {"scanned_data": "You should scan first"}
+    with open(file_path, 'r') as file:
+        data = file.read()
+        id_code = None
+        for i in data:
+            try:
+                id_code = int(i)
+            except Exception as e:
+                pass
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    return {"scanned_data": id_code}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

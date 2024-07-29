@@ -147,9 +147,6 @@ async def sale(sale_item_id : int,current_user = current_user_dep,database = dat
         product.packages_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
         product.units_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
         product.box = product.boxes_left
-        print([box, package,from_package])
-        if box:
-            product.box += item.amount_of_box
         database.delete(item)
         database.commit()
     else:
