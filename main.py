@@ -419,6 +419,7 @@ def get_scanned_data():
         data = file.read()
         id_code = None
         for i in data:
+            print(i)
             try:
                 id_code = int(i)
             except Exception as e:
