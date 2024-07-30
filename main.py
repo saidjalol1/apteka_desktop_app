@@ -388,7 +388,8 @@ def on_press(key, database):
             if current_code:
                 # Save the scanned QR code to the database
                 try:
-                    qr_code_id = models.QrCodeId(number=current_code)
+                    print(current_code)
+                    qr_code_id = models.QrCodeId(number= int(current_code))
                     database.add(qr_code_id)
                     database.commit()
                     database.refresh(qr_code_id)
