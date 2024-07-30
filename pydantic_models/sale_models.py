@@ -100,5 +100,5 @@ class DiscountCardOut(DiscountCardIn):
 
 class TableData(BaseModel):
     headers: list[str]
-    rows: list[list[str]]
+    rows: list[dict]
     today: str
