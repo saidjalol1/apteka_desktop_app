@@ -17,9 +17,8 @@ from routes import cashier_route, admin_routes
 from database_config.database_conf import engine, get_db
 from fastapi.middleware.cors import CORSMiddleware
 from my_util_functions.profile_util_functions import create_pdf, get_desktop_path
-from pynput import keyboard
+import keyboard
 import threading
-
 from threading import Lock
 
 import websockets
@@ -377,41 +376,38 @@ async def login(user_token : user_models.UserLogin,database = database_dep):
 capture_thread = None
 capture_active = False
 capture_lock = threading.Lock()
-current_code = ""
 
-def on_press(key, database):
-    global current_code
-    try:
-        if hasattr(key, 'char') and key.char.isalnum():  # Check for alphanumeric characters
-            current_code += key.char
-        elif key == keyboard.Key.enter:  # Assuming Enter key signals end of input
-            if current_code:
-                # Save the scanned QR code to the database
-                try:
-                    print(current_code)
-                    qr_code_id = models.QrCodeId(number= int(current_code))
-                    database.add(qr_code_id)
-                    database.commit()
-                    database.refresh(qr_code_id)
-                except Exception as e:
-                    print(f"Database error: {e}")
-                current_code = ""  # Reset for next scan
-    except AttributeError:
-        # Handle special keys or non-character keys
-        pass
+def on_scan_event(event, database):
+    global capture_active
+    if capture_active and event.event_type == 'down':
+        try:
+            name = int(event.name)
+            print(name)
+            qr_code_id = models.QrCodeId(
+                number=name
+            )
+            print(qr_code_id)
+            database.add(qr_code_id)
+            database.commit()
+            database.refresh(qr_code_id)
+        except Exception as e:
+            print(f"Error: {e}")
 
-def start_capture(database: Session):
+
+def start_capture(database):
     global capture_active
     with capture_lock:
         capture_active = True
-    with keyboard.Listener(on_press=lambda key: on_press(key, database)) as listener:
-        listener.join()  # Blocks the thread until the listener stops
+    keyboard.on_press(lambda event: on_scan_event(event, database))
+    keyboard.wait('esc')
+
 
 def stop_capture():
     global capture_active
     with capture_lock:
         capture_active = False
-    # The listener stops automatically when the function returns
+    keyboard.unhook_all()
+
 
 @app.post("/start_capture")
 def start_capture_endpoint(background_tasks: BackgroundTasks, database: Session = Depends(get_db)):
@@ -421,20 +417,35 @@ def start_capture_endpoint(background_tasks: BackgroundTasks, database: Session 
         capture_thread.start()
     return {"message": "QR code capture started"}
 
+
 @app.post("/stop_capture")
 def stop_capture_endpoint():
     stop_capture()
     return {"message": "QR code capture stopped"}
 
+
 @app.get("/get_scanned_data")
-def get_scanned_data_endpoint(database: Session = Depends(get_db)):
+def get_scanned_data(database=database_dep):
     try:
-        # Get the latest QR code entry from the database
-        latest_qr_code = database.query(models.QrCodeId).order_by(models.QrCodeId.id.desc()).first()
-        if latest_qr_code:
-            return {"scanned_data": {"id": latest_qr_code.id, "number": latest_qr_code.number}}
-        else:
+        # Query the QrCodeId table, ordering by ID in descending order
+        qr_code_id = database.query(models.QrCodeId).order_by(models.QrCodeId.id.desc()).first()
+        
+        # Check if the result is None
+        if qr_code_id is None:
             return {"message": "No scanned data found"}
+        
+        # Prepare the dictionary with the scanned data
+        dicts = {
+            "id": qr_code_id.id,
+            "number": qr_code_id.number
+        }
+        
+        # Delete the scanned QR code data from the database
+        database.delete(qr_code_id)
+        database.commit()
+        
+        return {"scanned_data": dicts}
+    
     except Exception as e:
         return {"message": str(e)}
 
