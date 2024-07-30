@@ -203,7 +203,8 @@ class DiscountCard(Base):
     surname = Column(String)
     date_added = Column(DateTime, default=current_time)
     
-    
-
-    
+class QrCodeId(Base):
+    __tablename__ = "card_id"
+    id = Column(Integer, primary_key=True)
+    number = Column(Integer)
     

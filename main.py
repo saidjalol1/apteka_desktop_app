@@ -373,61 +373,79 @@ async def login(user_token : user_models.UserLogin,database = database_dep):
 
 
 
-file_path = "scanned_data.txt"
+
 capture_thread = None
 capture_active = False
 capture_lock = threading.Lock()
 
-def on_scan_event(event):
+def on_scan_event(event, database):
     global capture_active
     if capture_active and event.event_type == 'down':
-        with open(file_path, 'a') as file:
-            file.write(event.name)
-            file.write('\n')  # Add a new line after each scan
+        try:
+            name = int(event.name)
+            print(name)
+            qr_code_id = models.QrCodeId(
+                number=name
+            )
+            print(qr_code_id)
+            database.add(qr_code_id)
+            database.commit()
+            database.refresh(qr_code_id)
+        except Exception as e:
+            print(f"Error: {e}")
 
-def start_capture():
+def start_capture(database):
     global capture_active
     with capture_lock:
         capture_active = True
-    keyboard.on_press(on_scan_event)
+    keyboard.on_press(lambda event: on_scan_event(event, database))
     keyboard.wait('esc')
 
 def stop_capture():
     global capture_active
     with capture_lock:
         capture_active = False
-    keyboard.unhook_all()  # Unhook all keyboard events
+    keyboard.unhook_all()
 
 @app.post("/start_capture")
-def start_capture_endpoint(background_tasks: BackgroundTasks):
+def start_capture_endpoint(background_tasks: BackgroundTasks, database: Session = Depends(get_db)):
     global capture_thread
     if capture_thread is None or not capture_thread.is_alive():
-        capture_thread = threading.Thread(target=start_capture)
+        capture_thread = threading.Thread(target=start_capture, args=(database,))
         capture_thread.start()
     return {"message": "QR code capture started"}
+
 
 @app.post("/stop_capture")
 def stop_capture_endpoint():
     stop_capture()
     return {"message": "QR code capture stopped"}
 
-@app.get("/get_scanned_data")
-def get_scanned_data():
-    if not os.path.exists(file_path):
-        return {"scanned_data": "You should scan first"}
-    with open(file_path, 'r') as file:
-        data = file.read()
-        id_code = None
-        for i in data:
-            print(i)
-            try:
-                id_code = int(i)
-            except Exception as e:
-                pass
-    if os.path.exists(file_path):
-        os.remove(file_path)
 
-    return {"scanned_data": id_code}
+@app.get("/get_scanned_data")
+def get_scanned_data(database=database_dep):
+    try:
+        # Query the QrCodeId table, ordering by ID in descending order
+        qr_code_id = database.query(models.QrCodeId).order_by(models.QrCodeId.id.desc()).first()
+        
+        # Check if the result is None
+        if qr_code_id is None:
+            return {"message": "No scanned data found"}
+        
+        # Prepare the dictionary with the scanned data
+        dicts = {
+            "id": qr_code_id.id,
+            "number": qr_code_id.number
+        }
+        
+        # Delete the scanned QR code data from the database
+        database.delete(qr_code_id)
+        database.commit()
+        
+        return {"scanned_data": dicts}
+    
+    except Exception as e:
+        return {"message": str(e)}
 
 if __name__ == "__main__":
     import uvicorn

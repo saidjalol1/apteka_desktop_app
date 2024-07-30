@@ -86,3 +86,12 @@ class CheckLayoutOut(BaseModel):
     
     class Config:
         from_attributes = True
+
+class QrCodeIn(BaseModel):
+    number : int
+
+class QrCodeOut(QrCodeIn):
+    pass
+    
+    class Config:
+        from_attributes = True
