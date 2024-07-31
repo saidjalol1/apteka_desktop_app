@@ -400,7 +400,7 @@ def on_scan_event(event, database):
                 database.commit()
                 database.refresh(qr_code_id)
             except Exception as e:
-                print(f"Error: {e}")
+                print(f"Error: error")
             finally:
                 buffer = ""  # Clear the buffer for the next scan
         else:
@@ -447,11 +447,12 @@ def get_scanned_data(database=database_dep):
             "id": qr_code_id.id,
             "number": qr_code_id.number
         }
+        print(dicts)
         database.delete(qr_code_id)
         database.commit()
         return {"scanned_data": dicts}
     except Exception as e:
-        return {"message": str(e)}
+        return {"message": "error"}
 
 if __name__ == "__main__":
     import uvicorn
