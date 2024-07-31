@@ -373,14 +373,18 @@ async def login(user_token : user_models.UserLogin,database = database_dep):
 
 
 
+
+# Global variables
 capture_thread = None
 capture_active = False
 capture_lock = threading.Lock()
 buffer = ""
 end_char = "enter"  # This should be set to whatever character indicates the end of the scan
 
-# Event handler for keyboard events
-def on_scan_event(event, database):
+# Path to the file where scanned data will be saved
+file_path = "scanned_data.txt"
+
+def on_scan_event(event):
     global capture_active, buffer
     if capture_active and event.event_type == 'down':
         if event.name == end_char:
@@ -391,69 +395,65 @@ def on_scan_event(event, database):
                     try:
                         number = int(i)
                         code_id.append(number)
-                    except Exception as e:
+                    except ValueError:
                         pass
                 code_id_str = ''.join(map(str, code_id))
                 print(code_id_str)
-                qr_code_id = models.QrCodeId(number=code_id_str)
-                database.add(qr_code_id)
-                database.commit()
-                database.refresh(qr_code_id)
+
+                # Write the scanned data to a file
+                with open(file_path, 'a') as file:
+                    file.write(f"{code_id_str}\n")
+
             except Exception as e:
-                print(f"Error: error")
+                print(f"Error: {e}")
             finally:
                 buffer = ""  # Clear the buffer for the next scan
         else:
             # Add the character to the buffer
             buffer += event.name
-
-# Function to start capturing data
-def start_capture(database):
+            
+def start_capture():
     global capture_active
     with capture_lock:
         capture_active = True
-    keyboard.on_press(lambda event: on_scan_event(event, database))
+    keyboard.on_press(on_scan_event)
     keyboard.wait('esc')
 
-# Function to stop capturing data
+
 def stop_capture():
     global capture_active
     with capture_lock:
         capture_active = False
     keyboard.unhook_all()
+    
 
-# FastAPI endpoints
 @app.post("/start_capture")
-def start_capture_endpoint(background_tasks: BackgroundTasks, database: Session = Depends(get_db)):
+def start_capture_endpoint(background_tasks: BackgroundTasks):
     global capture_thread
     if capture_thread is None or not capture_thread.is_alive():
-        capture_thread = threading.Thread(target=start_capture, args=(database,))
+        capture_thread = threading.Thread(target=start_capture)
         capture_thread.start()
     return {"message": "QR code capture started"}
 
-@app.post("/stop_capture")
-def stop_capture_endpoint():
-    stop_capture()
-    return {"message": "QR code capture stopped"}
 
 @app.get("/get_scanned_data")
-def get_scanned_data(database=database_dep):
+def get_scanned_data():
     try:
-        qr_code_id = database.query(models.QrCodeId).order_by(models.QrCodeId.id.desc()).first()
-        if qr_code_id is None:
+        if not os.path.exists(file_path):
             return {"message": "No scanned data found"}
         
-        dicts = {
-            "id": qr_code_id.id,
-            "number": qr_code_id.number
-        }
-        print(dicts)
-        database.delete(qr_code_id)
-        database.commit()
-        return {"scanned_data": dicts}
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+        
+        if not lines:
+            return {"message": "No scanned data found"}
+        
+        # Return the latest scanned data
+        latest_scan = lines[-1].strip()
+        
+        os.remove(file_path)
+        
+        
+        return {"scanned_data": latest_scan}
     except Exception as e:
-        return {"message": "error"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+        return {"message": f"Error: {e}"}
