@@ -15,7 +15,6 @@ class Sell(BaseModel):
     
 
 class SaleItemIn(BaseModel):
-    amount_of_box : Optional[Union[int, None]] = None
     amount_of_package : Optional[Union[int, None]] = None
     amount_from_package : Optional[Union[int, None]] = None
     total_sum : Optional[Union[float, None]] = None
@@ -43,7 +42,6 @@ class CheckOut(BaseModel):
         from_attributes = True
 
 class ReturnIn(BaseModel):
-    amount_of_box : Optional[Union[int, None]] = None
     amount_of_package : Optional[Union[int, None]] = None
     amount_from_package : Optional[Union[int, None]] = None
     total_sum : Optional[Union[float, None]] = None

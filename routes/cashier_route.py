@@ -98,24 +98,23 @@ async def sale(sale_item_in: sale_models.SaleItemIn,current_user = current_user_
     sale_item = models.SaleItem(**sale_item_in.model_dump())
     product = database.query(models.Product).filter(models.Product.id == sale_item.product_id).first()
     if product:
-        box = 0
         package = 0
         from_package = 0
-        if sale_item_in.amount_of_box:
-            box = (product.amount_in_box *  product.amount_in_package) * sale_item_in.amount_of_box 
         if sale_item_in.amount_of_package:
-            package = product.amount_in_package * sale_item_in.amount_of_package
+            package = sale_item_in.amount_of_package * product.amount_in_package 
         if sale_item_in.amount_from_package:
             from_package = sale_item_in.amount_from_package
-        overall_for_sale = sum([box, package,from_package])
+        overall_for_sale = sum([package,from_package])
         sale_item.overall_for_sale = overall_for_sale
+        print(overall_for_sale)
         if product.overall_amount >= overall_for_sale:
-            product.overall_amount -= sum([box, package,from_package])
-            product.boxes_left = (product.overall_amount - (product.overall_amount % (product.amount_in_box * product.amount_in_package))) // (product.amount_in_box * product.amount_in_package)
-            product.packages_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
-            product.units_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
-            product.box = product.boxes_left
+            product.overall_amount -= sum([package,from_package])
             database.commit()
+            database.refresh(product)
+            product.boxes_left = product.overall_amount // product.amount_in_package
+            product.packages_left = product.overall_amount  % product.amount_in_package
+            database.commit()
+            database.refresh(product)
         else:
             return {"message":"Omborda Mahsulot Yetarli emas"}
     else:
@@ -133,20 +132,21 @@ async def sale(sale_item_id : int,current_user = current_user_dep,database = dat
     item = database.query(models.SaleItem).filter(models.SaleItem.id == sale_item_id).first()
     product = database.query(models.Product).filter(models.Product.id == item.product_id).first()
     if product:
-        box = 0
         package = 0
         from_package = 0
-        if item.amount_of_box:
-            box = (product.amount_in_box *  product.amount_in_package) * item.amount_of_box 
         if item.amount_of_package:
-            package = product.amount_in_package * item.amount_of_package
+            package = item.amount_of_package * product.amount_in_package 
         if item.amount_from_package:
             from_package = item.amount_from_package
-        product.overall_amount += sum([box, package,from_package])
-        product.boxes_left = (product.overall_amount - (product.overall_amount % (product.amount_in_box * product.amount_in_package))) // (product.amount_in_box * product.amount_in_package)
-        product.packages_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) // product.amount_in_package
-        product.units_left = (product.overall_amount % (product.amount_in_box * product.amount_in_package)) % product.amount_in_package
-        product.box = product.boxes_left
+        overall_for_sale = sum([package,from_package])
+        item.overall_for_sale = overall_for_sale
+        product.overall_amount += sum([package,from_package])
+        database.commit()
+        database.refresh(product)
+        product.boxes_left = product.overall_amount // product.amount_in_package
+        product.packages_left = product.overall_amount  % product.amount_in_package
+        database.commit()
+        database.refresh(product)
         database.delete(item)
         database.commit()
     else:
@@ -184,21 +184,21 @@ async def delay_check(check_id:int, db = database_dep):
         obj = db.query(models.Sale).filter(models.Sale.id == check_id).first()
         for i in obj.items:
             product = db.query(models.Product).filter(models.Product.id == i.product_id).first()
-            box = 0
             package = 0
             from_package = 0
-            if i.amount_of_box:
-                box = product.amount_in_box *  product.amount_in_package * i.amount_of_box 
             if i.amount_of_package:
-                package = product.amount_in_package * i.amount_of_package
+                package = i.amount_of_package * product.amount_in_package 
             if i.amount_from_package:
                 from_package = i.amount_from_package
-            product.overall_amount += sum([box, package,from_package])
-            print([box, package,from_package])
-            if box:
-                product.box += i.amount_of_box
-            db.delete(i)
+            overall_for_sale = sum([package,from_package])
+            i.overall_for_sale = overall_for_sale
+            product.overall_amount += sum([package,from_package])
             db.commit()
+            db.refresh(product)
+            product.boxes_left = product.overall_amount // product.amount_in_package
+            product.packages_left = product.overall_amount  % product.amount_in_package
+            db.commit()
+            db.refresh(product)
 
         db.delete(obj)
         db.commit()

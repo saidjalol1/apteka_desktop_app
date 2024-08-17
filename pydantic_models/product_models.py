@@ -7,23 +7,25 @@ class ProductIn(BaseModel):
     serial_number: Optional[Union[str, None]] = None
     name: Optional[Union[str, None]] = None
     
-    box : Optional[Union[int, None]] = None
     amount_in_box : Optional[Union[int, None]] = None
     amount_in_package : Optional[Union[int, None]] = None
-   
+    boxes_left : Optional[Union[int, None]] = None
+    packages_left : Optional[Union[float, None]] = None
+    
     produced_location : Optional[Union[str, None]] = None
     expiry_date : Optional[Union[str, None]] = None
+    
     base_price : Optional[Union[float, None]] = None
-    extra_price_in_percent : Optional[Union[int, None]] = None
     sale_price : Optional[Union[float, None]] = None
-    sale_price_in_percent : Optional[Union[int, None]] = None
     discount_price : Optional[Union[float, None]] = None
-    type_id :  Optional[Union[int, None]] = None
-    score : Optional[Union[int, None]] = None
     overall_price : Optional[Union[float, None]] = None
-    boxes_left : Optional[Union[int, None]] = None
-    packages_left : Optional[Union[int, None]] = None
-    units_left : Optional[Union[int, None]] = None
+    
+    extra_price_in_percent : Optional[Union[int, None]] = None
+    sale_price_in_percent : Optional[Union[int, None]] = None
+    
+    score : Optional[Union[int, None]] = None
+    type_id :  Optional[Union[int, None]] = None
+
 
 class CategoryIn(BaseModel):
     name : str

@@ -19,25 +19,24 @@ class Product(Base):
     serial_number = Column(String)
     name = Column(String)
     
-    
-    box = Column(Integer)
     amount_in_box = Column(Integer)
     amount_in_package = Column(Integer)
+    boxes_left = Column(Integer, default=0)
+    packages_left = Column(Integer, default=0)
+    overall_amount = Column(Integer, default=0)
     
     produced_location = Column(String)
     expiry_date = Column(String)
     
     base_price = Column(Float)
-    extra_price_in_percent = Column(Integer)
     sale_price = Column(Float)
-    sale_price_in_percent = Column(Float)
-    discount_price = Column(Float)
-    overall_amount = Column(Integer, default=0)
-    score = Column(Integer)
     overall_price = Column(Float)
-    boxes_left = Column(Integer, default=0)
-    packages_left = Column(Integer, default=0)
-    units_left = Column(Integer, default=0)
+    discount_price = Column(Float)
+    
+    extra_price_in_percent = Column(Integer)
+    sale_price_in_percent = Column(Float)
+    
+    score = Column(Integer)
     type_id  = Column("Category", ForeignKey('category.id'))
     
     
@@ -50,7 +49,6 @@ class SaleItem(Base):
     __tablename__ = "sale_items"
     
     id = Column(Integer, primary_key=True)
-    amount_of_box = Column(Integer)
     amount_of_package = Column(Integer)
     amount_from_package = Column(Integer)
     total_sum = Column(Float)
@@ -66,7 +64,6 @@ class ReturnItems(Base):
     __tablename__ = "return_items"
     
     id = Column(Integer, primary_key=True)
-    amount_of_box = Column(Integer)
     amount_of_package = Column(Integer)
     amount_from_package = Column(Integer)
     total_sum = Column(Float)
