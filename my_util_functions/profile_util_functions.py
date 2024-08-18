@@ -75,7 +75,6 @@ def user_score_retrieve(user_id, db, date=None, this_month=None, start_date=None
                 'date_scored': score.date_scored.date(),
                 'item': {
                     'id': item.id,
-                    'amount_of_box': item.amount_of_box,
                     'amount_of_package': item.amount_of_package,
                     'amount_from_package': item.amount_from_package,
                     'total_sum': item.total_sum,
@@ -86,7 +85,6 @@ def user_score_retrieve(user_id, db, date=None, this_month=None, start_date=None
                         'serial_number': product.serial_number,
                         'name': product.name,
                         'sale_price': product.sale_price,
-                        'box': product.box,
                         'amount_in_box': product.amount_in_box,
                         'amount_in_package': product.amount_in_package,
                         'produced_location': product.produced_location,
@@ -335,7 +333,10 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
 
     # Overall profit for the selected period
     overall_profit_current_period = session.query(
-        func.sum((models.Product.sale_price - models.Product.base_price) * models.SaleItem.amount_of_box)
+        func.sum(
+        (models.Product.sale_price - models.Product.base_price) *
+        (models.SaleItem.amount_of_package * models.Product.amount_in_package + models.SaleItem.amount_from_package)
+    )
     ).select_from(
         models.Sale
     ).join(
@@ -414,7 +415,10 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
 
     # Overall profit for the comparison period
     overall_profit_last_period = session.query(
-        func.sum((models.Product.sale_price - models.Product.base_price) * models.SaleItem.amount_of_box)
+        func.sum(
+        (models.Product.sale_price - models.Product.base_price) *
+        (models.SaleItem.amount_of_package * models.Product.amount_in_package + models.SaleItem.amount_from_package)
+    )
     ).select_from(
         models.Sale
     ).join(
@@ -451,17 +455,17 @@ def reports(session, start_date=None, end_date=None, filter="thismonth"):
     quantity_sales_percent_change = calculate_percent_change(quantity_of_sales_current_period, quantity_of_sales_last_period)
 
     context = {
-        "overall_sum_of_sale": round(overall_sum_sales_current_period),
-        "overall_sum_of_profit": round(overall_profit_current_period),
-        "quantity_of_sales_current_month": round(quantity_of_sales_current_period),
-        "overall_sum_salaries_current_month": round(overall_sum_salaries_current_period),
-        "overall_sum_expense_current_month": round(overall_sum_expenses_current_period),
-        "naqd_savdo": round(cash_sales_current_period),
-        "nasiya_savdo": round(credit_sales_current_period),
-        "salary_change_percent": round(salary_change_percent),
-        "sales_percent_change": round(sales_percent_change),
-        "profit_percent_change": round(profit_percent_change),
-        "quantity_sales_percent_change": round(quantity_sales_percent_change)
+        "overall_sum_of_sale": round(overall_sum_sales_current_period, 2),
+        "overall_sum_of_profit": round(overall_profit_current_period, 2),
+        "quantity_of_sales_current_month": round(quantity_of_sales_current_period, 2),
+        "overall_sum_salaries_current_month": round(overall_sum_salaries_current_period, 2),
+        "overall_sum_expense_current_month": round(overall_sum_expenses_current_period, 2),
+        "naqd_savdo": round(cash_sales_current_period, 2),
+        "nasiya_savdo": round(credit_sales_current_period, 2),
+        "salary_change_percent": round(salary_change_percent, 2),
+        "sales_percent_change": round(sales_percent_change, 2),
+        "profit_percent_change": round(profit_percent_change, 2),
+        "quantity_sales_percent_change": round(quantity_sales_percent_change, 2)
     }
 
     return context
@@ -562,6 +566,8 @@ def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filter criteria")
     
     table = []
+    user_sale_count = 0
+    user_sale_ = None
     workers = database.query(models.User).filter(models.User.is_admin == False).all()
     for i in workers:
         user_sale_ = database.query(models.Sale).filter(models.Sale.status == "sotilgan").filter(models.Sale.owner_id == i.id).filter(and_(\
@@ -572,9 +578,10 @@ def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth")
                                     extract('month', models.Sale.date_added) <= end_date.month,
                                     extract('day', models.Sale.date_added) <= end_date.day,
                                 )).all()
-        user_sale_count = 0
-        for d in user_sale_:
+        
+        for j in user_sale_:
             user_sale_count += 1
+
         user_scores = database.query(func.sum(models.UserScores.score)).\
                                 filter(models.UserScores.owner_id == i.id).\
                                 filter(and_(
@@ -631,7 +638,7 @@ def workers_tabel(database,start_date=None, end_date=None, filter = "thismonth")
                 "user_salaries":user_salaries,
                 "user_bonus":user_bonus
             })
-        
+   
     return table
 
 
@@ -702,7 +709,6 @@ def get_sales_with_details(session, start_date=None, end_date=None, filter="this
             'shift_name': sale.shift_name
         }
         sales_statistics.append(sale_dict)
-        print(sale_dict)
     return sales_statistics
 
 
