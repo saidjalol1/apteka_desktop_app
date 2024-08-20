@@ -219,9 +219,10 @@ async def create_discount_card(
     current_user = current_user_dep,
     db = database_dep
 ):
+   
    if card_id > 0:
         objs = db.query(models.DiscountCard).filter(models.DiscountCard.id == card_id).first()
-        dicts  ={
+        dicts  = {
             "id": objs.id,
             "amount" : objs.amount,
             "name": objs.name,

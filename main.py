@@ -84,22 +84,23 @@ async def home(
     discount = 0
     for sale_item_in in response_items:
         product = database.query(models.Product).filter(models.Product.id == sale_item_in.product_id).first()
-        package = 0
-        from_package = 0
         if sale_item_in.amount_of_package:
-            package = sale_item_in.amount_of_package / product.amount_in_package 
+            package = sale_item_in.amount_of_package * product.amount_in_package 
         if sale_item_in.amount_from_package:
             from_package = sale_item_in.amount_from_package
         overall_for_sale = sum([package,from_package])
-        
-        discount = sum([(sale_item_in.sale_product_items.discount_price /  sale_item_in.sale_product_items.amount_in_package) * overall_for_sale  for sale_item_in in response_items])
+        discount = (sale_item_in.sale_product_items.discount_price /  sale_item_in.sale_product_items.amount_in_package) * overall_for_sale
         overall_discount += discount
         database.commit()
-    
+    # print(sale_item_in.amount_from_package)
+    # print(sale_item_in.amount_of_package)
+    # print(package)
+    # print(from_package)
+    # print(overall_for_sale)
     total = sum([ i.total_sum for i in response_items])
-    payment = total - discount
+    payment = total - overall_discount
     
-    check.discount = overall_discount
+    check.discount = round(overall_discount)
     check.amount = payment
     database.commit()
     database.refresh(check)
@@ -108,7 +109,7 @@ async def home(
 
     
     check_object = {
-        "total_discount": discount,
+        "total_discount": round(overall_discount),
         "total": total,
         "payment" : payment
         }
@@ -152,22 +153,23 @@ async def sell(
                     database.commit()
 
 
-        package = 0
-        from_package = 0
+        
         for i in items:
             product = database.query(models.Product).filter(models.Product.id == i.product_id).first()
+            package = 0
+            from_package = 0
             if i.amount_of_package:
-                package = i.amount_of_package * product.amount_in_package 
+                package += i.amount_of_package * product.amount_in_package 
             if i.amount_from_package:
-                from_package = i.amount_from_package
+                from_package += i.amount_from_package
             
             drug_count = sum([package,from_package])
-            base_score = product.score / (product.amount_in_box * product.amount_in_package)
+            base_score = product.score / product.amount_in_package
             score = drug_count * base_score
 
 
             user_score = models.UserScores(
-                score = score,
+                score = round(score),
                 owner_id = current_user.id,
                 sale_item_id = i.id
             )
